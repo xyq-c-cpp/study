@@ -134,6 +134,7 @@ bool requestmsg::handlequest(int _epollfd)
         delete this;
         return false;
     }
+    print("the message had receced is : ", RequestMsg, "  next , system will analyse message ....");
     analysemsg();
     
     if(handlemsg() == false )
