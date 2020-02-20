@@ -141,11 +141,11 @@ bool requestmsg::handlequest(int _epollfd)
         print("handlemsg fail ........");
         return false;
     }
-    
+    /*
     __uint32_t events = EPOLLIN | EPOLLET | EPOLLONESHOT ;
     if( false == _epoll_ctl(_epollfd, EPOLL_CTL_MOD, static_cast<void*>(this), Fd, events) )
     print("epoll_ctl fail add again !........");
-
+    */
     return true;
 }
 bool requestmsg::handlemsg()
