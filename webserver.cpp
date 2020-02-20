@@ -116,29 +116,32 @@ bool webserver::connection()
 	socklen_t client_len = 0;   
     
     memset(&client_sock, 0, sizeof(struct sockaddr_in));
-    
-    int accept_fd = accept(LSocket,(struct sockaddr*)&client_sock,&client_len);
-	if (accept_fd == -1)
-	{
-		print("error message accept client connection fail , websvr will be exit !");
-		return false;
-	}
-    if(setnoblock(accept_fd) == false)
+    while(1)
     {
-        print("error message : accept_fd set noblock fail ! accept_fd : ", accept_fd);
-        return false;
-    }
-       
-    requestmsg* req = new requestmsg(accept_fd);
-    __uint32_t reqevent = EPOLLIN | EPOLLET | EPOLLONESHOT;
-    
-    if( _epoll_ctl(this->EpollFd, EPOLL_CTL_ADD ,static_cast<void*>(req), accept_fd, reqevent) == false )
-    {          
-        return false;
-    }
-    print("connection success and add to epoll ! accept_fd : ",accept_fd);
+        int accept_fd = accept(LSocket,(struct sockaddr*)&client_sock,&client_len);
+        if (accept_fd <= 0)
+        {
+            print("error message accept client connection fail , websvr will be exit !");
+            break;
+        }
+        if(setnoblock(accept_fd) == false)
+        {
+            print("error message : accept_fd set noblock fail ! accept_fd : ", accept_fd);
+            close(accept_fd);
+            break;
+        }
+           
+        requestmsg* req = new requestmsg(accept_fd);
+        __uint32_t reqevent = EPOLLIN | EPOLLET | EPOLLONESHOT;
         
-    return true;
+        if( _epoll_ctl(this->EpollFd, EPOLL_CTL_ADD ,static_cast<void*>(req), accept_fd, reqevent) == false )
+        {          
+            close(accept_fd);
+            break;
+        }
+        print("connection success and add to epoll ! accept_fd : ",accept_fd);                     
+    }
+    return true;   
 }
 bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
 {
