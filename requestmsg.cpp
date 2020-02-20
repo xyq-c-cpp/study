@@ -142,7 +142,7 @@ bool requestmsg::handlequest(int _epollfd)
     
     if(handlemsg() == false )
     {
-        print("handlemsg fail ........");
+        print("handlemsg fail ...... fd   :   ", Fd);
         return false;
     }
     /*
@@ -176,7 +176,7 @@ bool requestmsg::handlemsg()
 		struct stat sfind;
 		if(stat(filepath.c_str(),&sfind) < 0)
 		{
-			print("error can not find the file ,webserver will be exit !");
+			print("error can not find the file ,the file name is  :   ", filepath);
 			return false;
 		}
 		sprintf(sendbuffer,"%sContent-type: %s\r\n",sendbuffer,_filetype);
@@ -185,13 +185,13 @@ bool requestmsg::handlemsg()
 
 		sprintf(sendbuffer,"%s\r\n",sendbuffer);
 		
-		print("the message header : ",sendbuffer);
+		print("the message header  :  ",sendbuffer);
 	
 		ssize_t nowrite = _write(Fd, sendbuffer, strlen(sendbuffer));
 
 		if(nowrite != strlen(sendbuffer) || nowrite == 0 || nowrite == -1)
 		{
-			print("error : send message header fail");       
+			print("error : send message header fail.....");       
 			return false;
 		}
 		print("the size of message header had writen is :",nowrite);
@@ -205,7 +205,7 @@ bool requestmsg::handlemsg()
 		ssize_t wlen = _write(Fd, cfile, sfind.st_size);
 		if(wlen != sfind.st_size || wlen == 0 || nowrite == -1)
 		{
-			print("error: send message body fail ");            
+			print("error: send message body fail.......");            
 			return false;
 		}
 		print("send message body success,size : ",wlen);

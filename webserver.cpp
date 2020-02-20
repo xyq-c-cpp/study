@@ -97,7 +97,7 @@ bool webserver::init()
 	EpollFd = epoll_create(MAX_LISTEN_SIZE+1);
     if(EpollFd == -1)
         return false;
-    print("epoll_create called success...... ");
+    print("epoll_create called success............ ");
     
     requestmsg* req = new requestmsg(LSocket);
     __uint32_t events = EPOLLIN | EPOLLET;
@@ -107,7 +107,7 @@ bool webserver::init()
         return false;
     }      
     
-	print("webserve init success ,LSocket :",LSocket," EpollFd : ",EpollFd);    
+	print("webserve init success ,LSocket ...",LSocket," EpollFd ...",EpollFd);    
     return true;
 }
 bool webserver::connection()
@@ -121,7 +121,7 @@ bool webserver::connection()
         int accept_fd = accept(LSocket,(struct sockaddr*)&client_sock,&client_len);
         if (accept_fd <= 0)
         {
-            print("error message accept client connection fail , websvr will be exit !");
+            print("error message accept client connection fail , the return of accept_fd .......", accept_fd);
             break;
         }
         if(setnoblock(accept_fd) == false)
@@ -139,7 +139,7 @@ bool webserver::connection()
             close(accept_fd);
             break;
         }
-        print("connection success and add to epoll ! accept_fd : ",accept_fd);                     
+        print("connection success and add to epoll !     accept_fd : ",accept_fd);                     
     }
     return true;   
 }
@@ -153,7 +153,7 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
         {
             auto ret = connection();
             if (ret == false)
-               print("error message accept connection fail ,continue !");
+               print("error message accept connection fail .continue .........");
         }
         else 
         {
@@ -161,7 +161,7 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
                 || (!(_epollevents[i].events & EPOLLIN)))
             {   
                 auto events = _epollevents[i].events;
-                print("error message the events have error ! events : ", events);
+                print("error message the opposite fd  had shutdown the connection ......", events);
                 close(req->getfd());                
                 delete req;
                 continue;
@@ -170,7 +170,7 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
             int ret = req->handlequest(EpollFd);
             
             if(ret == false )
-               print("domessage fail , client socket : ",__fd);           
+               print("domessage fail , client socket ....... ",__fd);           
         }
     }
     return true;
@@ -187,7 +187,7 @@ void webserver::start()
         print("the num of events to deal is : ",waitnum);        
         int ret = doevent(myevents, waitnum);
                 
-        print("doevent status : ",ret);        
+        print("doevent status is ..........  ",ret);        
 	}	 	        
 }
 
