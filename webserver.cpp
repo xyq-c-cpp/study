@@ -31,25 +31,33 @@ const int MAX_EVENTS = MAX_LISTEN_SIZE + 1;
 struct epoll_event* myevents = new epoll_event[MAX_EVENTS];
 
 
-webserver::webserver(int _Port)
+webserver::webserver(int _Port, threadpool* _Pool)
 {
     
 	Port = _Port;
+    Pool = _Pool;
 }
 webserver::~webserver()
 {
     close(LSocket);
-    close(EpollFd);    
+    close(EpollFd);
+    if(Pool)
+        delete Pool;
 }
-webserver *webserver::createwebsvr(int _Port)
+webserver *webserver::createwebsvr(int _Port, threadpool* _Pool)
 {   
     int port = _Port;
+    
     if(_Port > 65536 || _Port < 1024)
     {
         print("the PORT is unvaliable , it will be set default num 8080 .");
         port = 8080;
-    }  
-	static webserver* websvr = new webserver(port);
+    }
+    if(!_Pool){
+        print("threadpool* is unvaliable....");
+        exit(0);
+    }
+	static webserver* websvr = new webserver(port, _Pool);
 	return websvr;
 }
 bool webserver::init()
@@ -166,11 +174,12 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
                 delete req;
                 continue;
             }           
-            int __fd = req->getfd();    
-            int ret = req->handlequest(EpollFd);
+            //int __fd = req->getfd();    
+            //int ret = req->handlequest(EpollFd);
+            Pool->push(requestmsg::handle, EpollFd, req);
             
-            if(ret == false )
-               print("domessage fail , client socket ....... ",__fd);           
+            /* if(ret == false )
+               print("domessage fail , client socket ....... ",__fd);    */        
         }
     }
     return true;

@@ -27,11 +27,15 @@ private:
 	void parseline();
 	void parseheader();
 	void analysemsg();
+    
+    bool handlemsg();
+    
 public:	
 
+    static void handle(int _fd,requestmsg* _req);
+    bool handlequest(int _epollfd);    
     int getfd();          
-    bool handlequest(int _epollfd);
-    bool handlemsg();
+    
 };
 
 #endif // ! _REQUESTMSG_H_

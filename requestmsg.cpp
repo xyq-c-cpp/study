@@ -223,6 +223,10 @@ int requestmsg::getfd()
 {
     return Fd;
 }
+void requestmsg::handle(int _fd,requestmsg* _req)
+{
+    _req->handlequest(_fd);
+}
 
 
 
