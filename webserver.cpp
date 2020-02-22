@@ -173,13 +173,8 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum)
                 close(req->getfd());                
                 delete req;
                 continue;
-            }           
-            //int __fd = req->getfd();    
-            //int ret = req->handlequest(EpollFd);
-            Pool->push(requestmsg::handle, EpollFd, req);
-            
-            /* if(ret == false )
-               print("domessage fail , client socket ....... ",__fd);    */        
+            }                       
+            Pool->push(requestmsg::handle, EpollFd, req);                 
         }
     }
     return true;
