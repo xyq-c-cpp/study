@@ -1,13 +1,14 @@
 #include "filetype.h"
 
-pthread_mutex_t filetype::lock = PTHREAD_MUTEX_INITIALIZER;
+
 std::unordered_map<std::string ,std::string> filetype::mime;
+std::mutex filetype::lock;
 
 std::string filetype::gettype(const std::string &_type)
 {
 	if(mime.size() == 0)
 	{
-		pthread_mutex_lock(&lock);
+		std::lock_guard<std::mutex> _lock(lock);
 		{	
 			    mime[".html"] = "text/html";
 			    mime[".avi"] = "video/x-msvideo";
@@ -25,7 +26,7 @@ std::string filetype::gettype(const std::string &_type)
 			    mime["default"] = "text/html";
 	 
 		}
-		pthread_mutex_unlock(&lock);
+		
 	}
 	if(mime.find(_type) == mime.end())
 	{
