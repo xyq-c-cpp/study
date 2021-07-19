@@ -16,8 +16,11 @@ Log *Log::CreateLogger(uint8_t *file_name) {
   return logger;
 }
 
-Log::Log(uint8_t *file_name, log_level_t level)
-    : level_(level), time_(TimeSpace()){
+Log::Log(uint8_t *file_name, log_level_t level, uint16_t buff_lock_size, uint8_t buff_block_nr)
+    : level_(level),
+      time_(TimeSpace()), 
+      buff_block_size_(buff_lock_size)
+      buff_block_nr_(buff_block_nr) {
   if (file_name) {
     strncpy(file_name_, file_name, sizeof(file_name_));
   } else {
@@ -27,11 +30,16 @@ Log::Log(uint8_t *file_name, log_level_t level)
   fd_ = fopen(file_name_, "a+");
   static_assert(fd_ != nullptr, "open fd_ failed.");
 
-  for (int i = 0; i < sizeof(buf_)/sizeof(void *); ++i) {
-    buf[i] = operator new(LOG_BUFF_BLOCK_SIZE);
+  for (int i = 0; i < buff_block_nr_; ++i) {
+    buf_[i] = operator new(LOG_BUFF_BLOCK_SIZE);
     static_assert(buf_[i] != nullptr, "new memory failed");
   }
-  cur_input_ = cur_ouput_ = cur_input_pos_ = cur_output_pos_ = 0;
+  
+  cur_input_ = cur_ouput_ = 0;
+  cur_input_pos_ = cur_output_pos_ = buf_[0];
+
+  input_nr_ = buff_block_size_ * buff_block_nr_;
+  output_nr_ = 0;
 }
 
 Log::~Log() {
@@ -39,15 +47,26 @@ Log::~Log() {
     (void)fclose(fd_);
   }
 
-  for (int i = 0; i < sizeof(buf_)/sizeof(void *); ++i) {
-    delete buf[i];
+  for (int i = 0; i < buff_block_nr_; ++i) {
+    delete buf_[i];
   }
 }
 
-void Log::Logging(const char *func, uint32_t line, log_level_t level, const char *fmt, ...) {
+void Log::Logging(const char *file, uint32_t line, const char *func, log_level_t level, 
+    const char *fmt, ...) {
+  uint32_t num;
+  va_list va;
+
   static_assert(func != nullptr, "func is nullptr");
+  if (!input_nr_) {
+    return;
+  }
+  
+  va_start(fmt, va);
   for (; ;) {
-    snprintf(&buf_[cur_input_] + cur_input_pos_, &buf_[cur_input_] + cur_input_pos_, "%s")
+    cur_input_pos_ += vsnprintf(cur_input_pos_, buff_block_size_ - (cur_input_pos_ - 
+      buf_[cur_input_]), "%s(%d) %s %s", file, line, func, va);
+    
   }
 }
 

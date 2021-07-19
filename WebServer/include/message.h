@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <string>
 
-#include <../Common/Common.h>
+#include <../common/common.h>
 
 #define WEB_SVR_IO_DEFAULT_RETRY_TIME   200
 
@@ -31,6 +31,7 @@ typedef enum {
 
 typedef enum {
   HTTP_VER_1_0 = 0,
+  HTTP_VER_1_1,
   HTTP_VER_2_0,
   HTTP_VER_NONE
 }http_ver_t;

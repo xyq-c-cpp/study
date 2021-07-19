@@ -31,8 +31,9 @@
 #include <filetype.h>
 
 static const uint8_t *ver_int2str[] = {
-  "HTTP1.0",
-  "HTTP2.0"
+  "HTTP/1.0",
+  "HTTP/1.1"
+  "HTTP/2.0"
   "NONE"
 };
 
