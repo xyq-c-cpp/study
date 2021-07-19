@@ -8,8 +8,8 @@
  * note: restructure with C++11 and code specification.
  */
 
-#ifndef _THREADPOOL_H_
-#define _THREADPOOL_H_
+#ifndef _THREAD_POOL_H_
+#define _THREAD_POOL_H_
 
 #include <thread>
 #include <mutex>
@@ -20,12 +20,12 @@
 #include <atomic>
 #include <future>
 
-class threadpool
+class ThreadPool
 {
  public:
-  ~threadpool();
-  threadpool(int _num);
-  
+  ThreadPool(uint32_t thread_nr);
+  ~ThreadPool();
+
   template<class F, class... ARGS>
   auto push(F&& f, ARGS&&... args)->std::future<decltype(f(args...))> {
     if(stop.load()) {
@@ -49,19 +49,20 @@ class threadpool
     return future;
   }
 
-private:
+ private:
+  void Work(void);
+  Task GetOneTask();
+
   using Task = std::function<void()>;
 
-  std::mutex  m_tp;
-  std::condition_variable c_tp;
+  std::mutex lock_;
+  std::condition_variable condition_variable_;
 
-  std::vector<std::thread>  threads;
-  std::queue<Task> task;
-  std::atomic<int> sum_threads;
-  std::atomic<bool> stop;
-  
-  void work();
-  Task get_one_task();
+  std::vector<std::thread> work_thread_;
+  uint32_t thread_nr_;
+  std::queue<Task> task_queue_;
+
+  std::atomic<bool> stop_;
 };
 
-#endif
+#endif /* _THREAD_POOL_H_ */

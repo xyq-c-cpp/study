@@ -8,8 +8,8 @@
  * note: restructure with C++11 and code specification.
  */
 
-#ifndef _FILETYPE_H_
-#define _FILETYPE_H_
+#ifndef _FILE_TYPE_H_
+#define _FILE_TYPE_H_
 
 #include <unordered_map>
 #include <string>
@@ -19,18 +19,20 @@
 /*
  * the single class of getting type of files.
  */
-class filetype
+class FileType
 {
  public:
-  filetype(const filetype& another) = delete;
+  FileType(const filetype& another) = delete;
   filetype& operator =(const filetype& another) = delete;
-  static std::string gettype(const std::string &_type);
+
+  static std::string gettype(const std::string &type);
 
  private:
-  filetype(){}
+  FileType() = default;
+  ~FileType() = default;
   
   static std::unordered_map<std::string ,std::string> mime_;
   static std::mutex lock_;
 };
 
-#endif
+#endif /* _FILE_TYPE_H_ */

@@ -63,7 +63,7 @@ static http_ver_t http_ver_str2enum(std::string &ver) {
 }
 
 Message::Message(int fd, uint8_t retry_times)
-  : _ver(HTTP_VER_1_0), pos_(0), fd_(fd), retry_times_(retry_times){
+  : ver_(HTTP_VER_1_0), pos_(0), fd_(fd), retry_times_(retry_times){
 
 }
 

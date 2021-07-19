@@ -42,14 +42,14 @@ class Message
   ~Message();
 
  private:
-  static void handle(int fd, Message *req);
+  static void Handle(int fd, Message *req);
 
-  int parseLine(void);
-  int parseHeader(void);
-  int analyseMsg(void);
-  bool handleMsg(void);
-  bool procMessage(uint32_t epoll_fd);
-  int getFd(void);
+  int ParseLine(void);
+  int ParseHeader(void);
+  int AnalyseMsg(void);
+  bool HandleMsg(void);
+  bool ProcMessage(uint32_t epoll_fd);
+  int Fd(void);
 
   std::string src_msg_;
   std::unordered_map<std::string, std::string> header_;
