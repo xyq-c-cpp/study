@@ -73,7 +73,7 @@ int32_t web_svr_read(int32_t fd, uint8_t *buf, uint32_t len) {
   return sum;
 }
 
-int32_t web_svr_write(int32_t fd, uint8_t buf, uint32_t len) {
+int32_t web_svr_write(int32_t fd, uint8_t *buf, uint32_t len) {
   size_t sizetowrite = len;
   ssize_t sum = 0 , written = 0;
 

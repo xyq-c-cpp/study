@@ -26,6 +26,27 @@
 #define WEB_SVR_BUFF_SIZE_2048    2048
 #define WEB_SVR_BUFF_SIZE_4096    4096
 
+class Log;
+class TimeSpace;
+class Timer;
+class Message;
+
+extern Log *g_logger;
+
+#define LOG_DEBUG(fmt, ...) do { \
+  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, DEBUG, fmt, ##__VA_ARGS__); \
+} while (0)
+
+#define LOG_WARN(fmt, ...) do { \
+  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, WARN, fmt, ##__VA_ARGS__); \
+} while (0)
+
+#define LOG_ERROR(fmt, ...) do { \
+  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, ERROR, fmt, ##__VA_ARGS__); \
+} while (0)
+
+int web_svr_log_init(void);
+int web_svr_add_timer();
 bool web_svr_set_fd_no_block(int32_t fd);
 bool web_svr_epoll_ctl(int32_t epoll_fd, int32_t flag, void *req,
   int32_t fd, __int32_t events);
