@@ -29,138 +29,41 @@
 #include <string>
 #include <thread>
 
-#include <webserver.h>
+#include <Server.h>
 #include <filetype.h>
 #include <common.h>
 #include <requestmsg.h>
 
-const int MAX_LISTEN_SIZE = 1024;
-const int MAX_EVENTS = MAX_LISTEN_SIZE + 1;
+Server *CreateServer(uint32_t port, int thread_nr, int listen_cnt) {
+  static Server *tmp = nullptr;
+  if (!tmp) {
+    tmp = new Server(port, thread_nr, listen_cnt);
+    static_cast(tmp != nullptr, "new Server failed");
+  }
 
-struct epoll_event* myevents = new epoll_event[MAX_EVENTS];
-
-webserver::webserver(int _Port, threadpool* _Pool) {
-  Port = _Port;
-  Pool = _Pool;
+  return tmp;
 }
 
-webserver::~webserver() {
-  close(LSocket);
-  close(EpollFd);
-  if(Pool) {
-    delete Pool;
-  }
+Server::Server(int port, int thread_nr, int listen_cnt)
+  : port_(port),
+    epoller_(Epoller::CreateEpoller(listen_cnt + 1)),
+    pool_(ThreadPool::CreatePool(thread_nr)),
+    timer_queue_(TimerQueue()),
+    connector_(Connector::CreateConnector(port, this, epoller_)) {
+  static_assert(epoller_ != nullptr, "create the instance of Epoller failed");
+  static_assert(pool_ != nullptr, "create the instance of ThreadPool failed");
+  static_assert(connector_ != nullptr, "create the instance of Connector failed");
 }
 
-webserver *webserver::createwebsvr(int _Port, threadpool* _Pool)
-{   
-  int port = _Port;
-
-  if (_Port > 65536 || _Port < 1024) {
-    print("the PORT is unvaliable , it will be set default num 8080 .");
-    port = 8080;
-  }
-
-  if (!_Pool){
-    print("threadpool* is unvaliable....");
-    exit(0);
-  }
-
-  static webserver* websvr = new webserver(port, _Pool);
-
-  return websvr;
+void Server::Insert(std::pair<int, Channal *> &channal) {
+  channal_map_.insert(std::move(channal));
 }
 
-bool webserver::init() {
-  struct sockaddr_in LSocket_addr;
-  int opt = 1;
-
-  LSocket = socket(AF_INET,SOCK_STREAM,0);
-  if (LSocket == -1) {
-    print("error message socket() fail ,websvr will be exit !");
-    return false;
-  }
-
-  if(setsockopt(LSocket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1) {
-    return false;
-  }
-
-  memset(&LSocket_addr,0,sizeof(LSocket_addr));
-  LSocket_addr.sin_family = AF_INET;
-  LSocket_addr.sin_port = htons((unsigned int)Port);
-  LSocket_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-  int result = bind(LSocket,(struct sockaddr*)&LSocket_addr,sizeof(LSocket_addr));
-  if (result == -1) {
-    print("error message bind to LSocket fail , websvr will be exit !");
-    return false;
-  }
-
-  if ( listen(LSocket,MAX_LISTEN_SIZE) != 0) {
-    print("error message listen to LSocket fail , websvr will be exit !");
-        close(LSocket);
-    return false;
-  }
-
-  if (!setnoblock(this->LSocket)) {
-      return false;
-  }
-
-  EpollFd = epoll_create(MAX_LISTEN_SIZE+1);
-  if(EpollFd == -1) {
-    return false;
-  }
-
-  print("epoll_create called success............ ");
-
-  requestmsg* req = new requestmsg(LSocket);
-  __uint32_t events = EPOLLIN | EPOLLET;
-  
-  if (!_epoll_ctl(this->EpollFd, EPOLL_CTL_ADD , static_cast<void*>(req),
-    this->LSocket, events)) {
-    return false;
-  }
-
-  print("webserve init success ,LSocket ...",LSocket," EpollFd ...",EpollFd);
-
-  return true;
+void Server::Erase(int fd) {
+  channal_map_.erase(fd);
 }
 
-bool webserver::connection() {
-  struct sockaddr_in client_sock;
-  socklen_t client_len = 0;
-
-  memset(&client_sock, 0, sizeof(struct sockaddr_in));
-  while (true) {
-    int accept_fd = accept(LSocket,(struct sockaddr*)&client_sock,&client_len);
-    if (accept_fd <= 0) {
-      print("error message accept client connection fail , the return of accept_fd",
-        accept_fd);
-      break;
-    }
-
-    if (setnoblock(accept_fd) == false) {
-      print("error message : accept_fd set noblock fail ! accept_fd : ", accept_fd);
-      close(accept_fd);
-      break;
-    }
-
-    requestmsg* req = new requestmsg(accept_fd);
-    __uint32_t reqevent = EPOLLIN | EPOLLET | EPOLLONESHOT;
-
-    if(!_epoll_ctl(this->EpollFd, EPOLL_CTL_ADD ,static_cast<void*>(req), accept_fd,
-      reqevent)){
-      close(accept_fd);
-      break;
-    }
-
-    print("connection success and add to epoll !     accept_fd : ",accept_fd);
-  }
-
-  return true;   
-}
-
-bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum) {
+bool Server::doevent(struct epoll_event* _epollevents, int eventsnum) {
   requestmsg* req = nullptr;
 
   for (int i = 0; i < eventsnum; ++i) {
@@ -188,18 +91,22 @@ bool webserver::doevent(struct epoll_event* _epollevents, int eventsnum) {
   return true;
 }
 
-void webserver::start() {
-  int waitnum, ret;
+void Server::start() {
+  int event_nr;
+  struct epoll_event *event;
 
   while (true) {
-    waitnum = epoll_wait(EpollFd ,myevents ,MAX_EVENTS , -1);
-    if (waitnum <= 0) {
+    std::tuple<int, struct epoll_event *> ret = epoller_.EpollWait(EPOLL_WAIT_BLOCK);
+    event_nr = std::get<0>(ret);
+    event = std::get<1>(ret);
+
+    if (event_nr == 0) {
+      LOG_ERROR("invalid epoll wait ret value, ignore it");
       continue;
     }
-
-    print("the num of events to deal is : ", waitnum);
-    ret = doevent(myevents, waitnum);
-    print("doevent status ", ret);
+    LOG_DEBUG("epoll wait get events about %d", event_nr);
+    
+    
   }
 }
 

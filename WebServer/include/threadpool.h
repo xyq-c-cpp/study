@@ -23,46 +23,24 @@
 class ThreadPool
 {
  public:
-  ThreadPool(uint32_t thread_nr);
-  ~ThreadPool();
-
-  template<class F, class... ARGS>
-  auto push(F&& f, ARGS&&... args)->std::future<decltype(f(args...))> {
-    if(stop.load()) {
-      exit(-1);
-    }
-
-    using rettype = decltype(f(args...));
-    auto _task = std::make_shared<std::packaged_task<rettype()>>(
-      std::bind(std::forward<F>(f), std::forward<ARGS>(args)...)
-      );
-
-    std::lock_guard<std::mutex> lock(this->m_tp);
-    this->task.emplace([_task](){
-      (*_task)();
-      }
-    );
-
-    this->c_tp.notify_one();
-    std::future<rettype> future = _task->get_future();
-
-    return future;
-  }
+  static ThreadPool *CreatePool(int thread_nr);
+  void Insert(std::function<int()> &callback);
 
  private:
+  ThreadPool(int thread_nr);
+  ~ThreadPool();
+  
   void Work(void);
   Task GetOneTask();
 
-  using Task = std::function<void()>;
-
-  std::mutex lock_;
-  std::condition_variable condition_variable_;
+  int thread_nr_;
+  std::atomic<bool> stop_;
 
   std::vector<std::thread> work_thread_;
-  uint32_t thread_nr_;
-  std::queue<Task> task_queue_;
+  std::queue<std::function(int())> task_queue_;
 
-  std::atomic<bool> stop_;
+  std::condition_variable condition_variable_;
+  std::mutex lock_;
 };
 
 #endif /* _THREAD_POOL_H_ */

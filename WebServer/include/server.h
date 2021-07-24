@@ -19,27 +19,35 @@
 #include <threadpool.h>
 #include <common.h>
 
+class ThreadPool;
+class Epoller;
+class TimerQueue;
+class Connector;
+
 /*
  * a single class of the server
  */
 class Server
 {
  public:
-  static webserver *CreateServer(uint32_t port, threadpool* pool);
-  int32_t Init(void);
+  static Server *CreateServer(uint32_t port, int thread_nr, int listen_cnt);
   int32_t Start(void);
+  void Insert(std::pair<int, Channal *> &channal);
+  void Erase(int fd);
 
  private:
-  Server(uint32_t port = 80, threadpool *pool = nullptr);
-  ~Server();
+  Server(int port, int thread_nr, int listen_cnt);
+  ~Server() = default;
+
   bool EventProc(struct epoll_event* events, uint32_t num);
   bool MessageProc(Message     *req, uint32_t fd);
-  bool Connection();
 
-  uint32_t port_;
-  uint32_t listen_fd_;
-  uint32_t epoll_fd_;
+  const int port_;
+  Epoller *epoller_;
   ThreadPool *pool_;
+  TimerQueue *timer_queue_;
+  Connector *connector_;
+  std::unordered_map<int, Channal *> channal_map_;
 };
 
 #endif /* _SERVER_H_ */

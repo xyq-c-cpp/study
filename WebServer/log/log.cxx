@@ -65,6 +65,12 @@ void Log::Logging(const char *file, uint32_t line, const char *func,
 
   std::lock_guard<std::mutex> local_lock(lock_);
   buff_ += tmp;
+
+#ifdef DEBUG
+  (void)web_svr_write(fileno(fd_), static_cast<uint8_t *>(buff_.c_str()), 
+    buff_.size());
+  buff_.clear();
+#endif
 }
 
 void Log::UpdateTime(void) {
@@ -78,7 +84,7 @@ void Log::UpdateTime(void) {
     Logging(__FILE__, __LINE__, __FUNCTION__, ERROR, "the size of writing dismatch"
       ", all num %d, had write num %d", sum, num);
   }
-
+  buff_.clear();
   (void)gettimeofday(&time_, NULL);
   fflush(fd_);
 }

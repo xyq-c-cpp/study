@@ -26,6 +26,9 @@
 #define WEB_SVR_BUFF_SIZE_2048    2048
 #define WEB_SVR_BUFF_SIZE_4096    4096
 
+#define EPOLL_WAIT_BLOCK          -1
+#define EPOLL_WAIT_RET_IMMEDIATE  0
+
 class Log;
 class TimeSpace;
 class Timer;

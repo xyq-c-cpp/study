@@ -63,18 +63,46 @@ static http_ver_t http_ver_str2enum(std::string &ver) {
   }
 }
 
-Message::Message(int fd, uint8_t retry_times)
-  : ver_(HTTP_VER_1_0), pos_(0), fd_(fd), retry_times_(retry_times){
-
+Message::Message(int fd, std::string &msg)
+  : fd_(fd), 
+    src_msg_(std::move(msg)), 
+    ver_(HTTP_VER_1_0), 
+    pos_(0),
+    way_(HTTP_WAY_NONE){
+  memset(path, 0, sizeof(path_));
 }
 
-Message::~Message() {
+Message::Message(Message &&another)
+  : fd_(another.fd_), 
+    src_msg_(std::move(another.src_msg_)),
+    ver_(another.ver_),
+    pos_(another.pos_),
+    header_(std::move(another.header_)),
+    body_(std::move(another.body_)),
+    way_(another.way_) {
+    memcpy(path_, another.path_, sizeof(path_));
+    Reset();
+}
+
+Message::Reset(void) {
+  fd_ = -1;
+  if (!src_msg_.empty()) {
+    src_msg_.clear();
+  }
+  ver_ = HTTP_VER_1_0;
+  pos_ = 0;
   if (!header_.empty()) {
     header_.clear();
   }
+  if (!body_.empty()) {
+    body_.clear();
+  }
+  way_ = HTTP_WAY_NONE;
+  memset(path_, 0, sizeof(path_));
 }
 
-int Message::parseLine(void) {
+
+int Message::ParseLine(void) {
   uint32_t pre_pos = 0, cur_pos = pos_, tmp_pos1, tmp_pos2;
 
   tmp_pos1 = src_msg_.find_first_of(' ', cur_pos);
@@ -109,7 +137,7 @@ int Message::parseLine(void) {
   return 0;
 }
 
-void Message::parseHeader()
+void Message::ParseHeader()
 {
   uint32_t tmp1, tmp2;
   std::string key, val;
@@ -134,7 +162,7 @@ void Message::parseHeader()
   }
 }
 
-bool Message::procMessage(uint32_t epoll_fd) {
+bool Message::ProcMessage(uint32_t epoll_fd) {
   uint8_t buf[WEB_SVR_BUFF_SIZE_4096] = {0};
   int read_num = 0;
   bool is_error = false;
@@ -183,7 +211,7 @@ bool Message::procMessage(uint32_t epoll_fd) {
   return true;
 }
 
-bool src_msg_::handlemsg() {
+bool Message::HandleMsg() {
   uint8_t sendbuffer[WEB_SVR_BUFF_SIZE_4096] = {0};
 
   sprintf(sendbuffer, "%s %d %s\r\n", HttpVersion.c_str(),200, "OK");
@@ -242,16 +270,16 @@ bool src_msg_::handlemsg() {
   return true;
 }
 
-void src_msg_::analysemsg() {
+void Message::AnalyseMsg() {
   parseline();
   parseheader();
 }
 
-int src_msg_::getfd() {
+int Message::Fd(void) {
   return Fd;
 }
 
-void src_msg_::handle(int _fd, src_msg_* _req) {
+void Message::Handle(int _fd, Message* _req) {
   _req->handlequest(_fd);
 }
 

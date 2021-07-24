@@ -39,8 +39,13 @@ typedef enum {
 class Message
 {
  public:
-  Message(int fd, uint8_t retry_times = WEB_SVR_IO_DEFAULT_RETRY_TIME);
-  ~Message();
+  explicit Message(int fd, std::string &msg);
+  Message(const Message &another) = delete;
+  Message& operator = (const Message &another) = delete;
+  Message(Message &&another);
+  ~Message() = default;
+
+  void Reset();
 
  private:
   static void Handle(int fd, Message *req);
@@ -52,19 +57,16 @@ class Message
   bool ProcMessage(uint32_t epoll_fd);
   int Fd(void);
 
+  int fd_;
   std::string src_msg_;
+  http_ver_t ver_;
+  uint32_t pos_;
+  http_way_t way_;
+
   std::unordered_map<std::string, std::string> header_;
   std::string body_;
-
-  http_way_t way_;
-  uint8_t path_[WEB_SVR_BUFF_SIZE_64];
-  http_ver_t ver_;
   
-  uint32_t pos_;
-  int fd_;
-
-  const uint8_t retry_times_;
-  uint8_t retryed_;
+  uint8_t path_[WEB_SVR_BUFF_SIZE_64];
 };
 
 #endif /* _MESSAGE_H_ */

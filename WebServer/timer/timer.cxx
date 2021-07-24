@@ -44,6 +44,10 @@ void TimeSpace::Time2Str(void) {
 }
 
 const char *TimeSpace::GetTimeStr(void) {
+#ifdef DEBUG
+  gettimeofday(&time_, NULL);
+#endif
+  Time2Str();
   return const_cast<const char *>(time_str_);
 }
 

@@ -9,6 +9,8 @@
 
 #include <time.h>
 
+#include <config.h>
+
 class TimeSpace{
  public:
   TimeSpace() = default;
@@ -51,7 +53,7 @@ class TimerQueue {
   ~TimerQueue() = default;
 
  private:
-  std::priority_queue<Timer, std::vector<Timer> > max_heap;
+  std::priority_queue<Timer, std::vector<Timer> > time_queue_;
 };
 
 #endif /* _TIMER_H_ */
