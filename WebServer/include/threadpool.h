@@ -11,33 +11,28 @@
 #ifndef _THREAD_POOL_H_
 #define _THREAD_POOL_H_
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <vector>
-#include <queue>
-#include <functional>
-#include <atomic>
-#include <future>
+#include <common.h>
+
+using void_arg_task = std::function<int()>;
 
 class ThreadPool
 {
  public:
   static ThreadPool *CreatePool(int thread_nr);
-  void Insert(std::function<int()> &callback);
+  void Insert(void_arg_task callback);
 
  private:
   ThreadPool(int thread_nr);
   ~ThreadPool();
   
   void Work(void);
-  Task GetOneTask();
+  void_arg_task GetOneTask();
 
-  int thread_nr_;
+  const int thread_nr_;
   std::atomic<bool> stop_;
 
   std::vector<std::thread> work_thread_;
-  std::queue<std::function(int())> task_queue_;
+  std::queue<void_arg_task> task_queue_;
 
   std::condition_variable condition_variable_;
   std::mutex lock_;

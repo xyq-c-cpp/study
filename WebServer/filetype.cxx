@@ -11,10 +11,10 @@
 #include <filetype.h>
 
 /* init static valiable outside class */
-std::unordered_map<std::string ,std::string> filetype::mime__;
-std::mutex filetype::lock_;
+std::unordered_map<std::string, std::string> FileType::mime_;
+std::mutex FileType::lock_;
 
-std::string filetype::gettype(const std::string &_type) {
+std::string FileType::GetFileType(const std::string &type) {
   if (mime_.size() == 0) {
     std::lock_guard<std::mutex> lock(lock_);
     { 
@@ -34,10 +34,11 @@ std::string filetype::gettype(const std::string &_type) {
       mime_["default"] = "text/html";
     }
   }
-  if (mime_.find(_type) == mime_.end()) {
+
+  if (mime_.find(type) == mime_.end()) {
     return mime_["default"];
   } else {
-    return mime_[_type];
+    return mime_[type];
   }
 }
 

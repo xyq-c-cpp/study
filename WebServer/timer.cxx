@@ -5,15 +5,16 @@
  */
 
 #include <timer.h>
+#include <string.h>
+#include <assert.h>
 
 TimeSpace::TimeSpace(struct timeval *time) {
   time_.tv_sec = time->tv_sec;
-  time_.tv_usec = time->tv_sec;
+  time_.tv_usec = time->tv_usec;
 }
 
-TimeSpace& TimeSpace::TimeSpace(const TimeSpace &another) {
+TimeSpace::TimeSpace(const TimeSpace &another) {
   time_ = another.time_;
-  return *this;
 }
 
 TimeSpace& TimeSpace::operator = (const TimeSpace &another) {
@@ -22,11 +23,17 @@ TimeSpace& TimeSpace::operator = (const TimeSpace &another) {
 }
 
 bool TimeSpace::operator > (const TimeSpace &another) {
-  return time_.tv_sec > another.time_.tv_sec || time_.tv_usec > another.time_.tv_usec;
+  return time_.tv_sec > another.time_.tv_sec || 
+    time_.tv_usec > another.time_.tv_usec;
 }
 
-bool operator < (const TimeSpace &another) {
-  return time_.tv_sec < another.time_.tv_sec || time_.tv_usec < another.time_.tv_usec;
+bool TimeSpace::operator < (const TimeSpace &another) {
+  return time_.tv_sec < another.time_.tv_sec || 
+    time_.tv_usec < another.time_.tv_usec;
+}
+
+struct timeval *TimeSpace::GetTimePtr(void) {
+  return &time_;
 }
 
 void TimeSpace::Reset(void) {
@@ -40,7 +47,7 @@ void TimeSpace::Time2Str(void) {
   memset(time_str_, 0, sizeof(time_str_));
   p = localtime(&time_.tv_sec);
   strftime(time_str_, sizeof(time_str_) - 1, "%Y-%m-%d %H:%M:%S", p);
-  snprintf(time_str_, sizeof(time_str_) - 1, "%s:%d", time_str_, time.tv_usec);
+  snprintf(time_str_, sizeof(time_str_) - 1, "%s:%d", time_str_, time_.tv_usec);
 }
 
 const char *TimeSpace::GetTimeStr(void) {
@@ -51,14 +58,14 @@ const char *TimeSpace::GetTimeStr(void) {
   return const_cast<const char *>(time_str_);
 }
 
-Timer::Timer(std::function<void()> &callback, uint32_t sec, uint32_t usec)
+Timer::Timer(std::function<void()> &callback, unsigned int sec, unsigned int usec)
   : callback_(std::move(callback)) {
   struct timeval tval;
 
   gettimeofday(&tval, NULL);
   tval.tv_sec += sec;
   tval.tv_usec += usec;
-  time_ = TimeSpace(tval);
+  time_ = TimeSpace(&tval);
 }
 
 bool Timer::IsTimeOut(void) {
@@ -66,7 +73,7 @@ bool Timer::IsTimeOut(void) {
   int ret;
 
   ret = gettimeofday(&cur_time, NULL);
-  static_assert(ret == 0, "gettimeofday failed.");
+  assert(ret == 0);
 
   if (TimeSpace(&cur_time) > time_) {
     return true;
@@ -87,4 +94,8 @@ bool Timer::operator < (const Timer &another) {
   return time_ < another.time_;
 }
 
+TimerQueue::TimerQueue() 
+  : time_queue_(std::priority_queue<Timer, std::vector<Timer>, cmp>()){
+
+}
 

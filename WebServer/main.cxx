@@ -8,19 +8,13 @@
  * note: restructure with C++11 and code specification.
  */
 
-#include <webserver.h>
+#include <common.h>
+#include <server.h>
 
 int main(int argc, char *argv[]) {
-  threadpool* pool = new threadpool(3);
+  Server *server = Server::CreateServer(8888, 8, 35000);
   
-  webserver* mywebsvr = webserver::createwebsvr(8080, pool);
-
-  bool rett = mywebsvr->init();
-  if (!ret) {
-    return -1;
-  }
-  
-  mywebsvr->start();
+  server->Start();
 
   return 0;
 }

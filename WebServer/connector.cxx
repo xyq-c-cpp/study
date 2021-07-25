@@ -5,39 +5,42 @@
  */
 
 #include <connector.h>
+#include <epoller.h>
+#include <server.h>
+#include <channal.h>
 
-Connector *Connector::CreateConnector(int port, Server *server) {
+Connector *Connector::CreateConnector(int port, Server *server, 
+    Epoller *epoller, int listen_cnt) {
   static Connector *tmp = nullptr;
-  static_assert(port > 0 && port < 65536, "connect fd port should greater than 0"
-    " and less than 65536");
-  statoc_assert(server != nullptr, "server ptr is nullptr");
+  assert(port > 0 && port < 65536);
+  assert(server != nullptr);
 
   if (!tmp) {
-    tmp = new Connector(port, server);
-    static_assert(tmp != nullptr, "Connector::CreateConnector new Connecter failed");
+    tmp = new Connector(port, server, epoller, listen_cnt);
+    assert(tmp != nullptr);
   }
 
   return tmp;
 }
 
-void Connector::Connect(void) {
+int Connector::Connect(Epoller *epoller) {
   int fd;
   struct sockaddr_in addr;
   int len;
   bool boolret;
   int ret;
   int keepalive = 1;
-  Channal *tmp = nullptr;
 
   memset(&addr, 0, sizeof(addr));
   for (; ;) {
-    fd = accept(fd_, static_cast<struct sockaddr *>(&addr), &len);
+    fd = accept(fd_, reinterpret_cast<struct sockaddr *>(&addr), 
+      reinterpret_cast<socklen_t *>(&len));
     if (fd <= 0) {
       LOG_ERROR("accept fd failed, fd val %d, exit accept", fd);
       break;
     }
 
-    LOG_DEBUG("accept success, fd %d, addr %s", fd, inet_ntoa(add.sin_addr));
+    LOG_DEBUG("accept success, fd %d, addr %s", fd, inet_ntoa(addr.sin_addr));
 
     boolret = web_svr_set_fd_no_block(fd);
     if (!boolret) {
@@ -54,22 +57,22 @@ void Connector::Connect(void) {
       continue;
     }
 
-    tmp = new Channal(fd);
-    if (!tmp) {
+    std::shared_ptr<Channal> tmp(new Channal(fd, server_));
+    if (!tmp.get()) {
       LOG_ERROR("new channal failed, fd %d", fd);
       close(fd);
       continue;
     }
 
-    ret = epoller_.AddReadWriteEvent(fd, std::bind(&Channal::ReadEventProc(), *tmp),
-      std::bind(&Channal::WriteEventProc(), *tmp));
+    ret = epoller_->AddReadWriteEvent(fd, std::move(std::bind(&Channal::ReadEventProc, 
+      tmp.get(), std::placeholders::_1)), std::move(std::bind(&Channal::WriteEventProc,
+      tmp.get(), std::placeholders::_1)));
     if (ret) {
       LOG_ERROR("add fd %d to epoll failed", fd);
-      epoller_.DelFd(fd);
-      delete tmp;
+      epoller_->DelFd(fd);
       continue;
     }
-    server_.Insert(std::make_pair(fd, tmp));
+    server_->Insert(std::make_pair(fd, tmp));
 
     LOG_DEBUG("create channal success, fd %d", fd);
   }
@@ -84,32 +87,33 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
   int ret;
   int reuseaddr = 1;
   struct sockaddr_in addr;
-  uint32_t event = EPOLLIN | EPOLLET;
+  unsigned int event = EPOLLIN | EPOLLET;
 
-  static_assert(fd_ >= 0, "get socket fd failed");
-  static_assert(server_ != nullptr, "server_ ptr is nullptr");
-  static_assert(epoller_ != nullptr, "epoller_ ptr is nullptr");
+  assert(fd_ >= 0);
+  assert(server_ != nullptr);
+  assert(epoller_ != nullptr);
 
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
-    sizeof(reuseaddr);
-  static_assert(!ret, "setsockopt failed");
+    sizeof(reuseaddr));
+  assert(!ret);
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
   addr.sin_port = htons(static_cast<unsigned int>(port));
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-  ret = bind(fd_, static_cast<struct sockaddr *>(&addr), sizeof(addr));
-  static_assert(!ret, "bind failed");
+  ret = bind(fd_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+  assert(!ret);
 
   ret = listen(fd_, listen_cnt_);
-  static_assert(!ret, "listen failed");
+  assert(!ret);
 
   ret = web_svr_set_fd_no_block(fd_);
-  static_assert(ret, "set fd no block failed");
+  assert(ret);
 
-  ret = epoller_.AddReadEvent(fd_, std::bind(&Connector::Connect(), *this));
-  static_assert(ret == 0, "add listen fd to epoll failed");
+  ret = epoller_->AddReadEvent(fd_, std::move(std::bind(&Connector::Connect, *this,
+    std::placeholders::_1)));
+  assert(ret == 0);
 }
 
 

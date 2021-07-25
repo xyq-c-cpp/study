@@ -9,24 +9,19 @@
  */
 
 #include "threadpool.h"
-#include "common.h"
-#include <future>
-#include <stdexcept>
 
-using Task = std::function<void()>;
-
-ThreadPool::CreatePool(int thread_nr) {
+ThreadPool *ThreadPool::CreatePool(int thread_nr) {
   ThreadPool *tmp = nullptr;
 
   if (!tmp) {
     tmp = new ThreadPool(thread_nr);
-    static_assert(tmp != nullptr, "new threadpool failed");
+    assert(tmp != nullptr);
   }
 
   return tmp;
 }
 
-void ThreadPool::Insert(std::function<int()> &callback) {
+void ThreadPool::Insert(void_arg_task callback) {
   {
     std::lock_guard<std::mutex> local_lock(lock_);
 
@@ -39,48 +34,48 @@ void ThreadPool::Insert(std::function<int()> &callback) {
 }
 
 ThreadPool::ThreadPool(int thread_nr) 
-    : thread_nr(thread_nr),
-      stop(std::atomic<bool>(false)) {
-  static_assert(thread_nr > 0, "thread number should be greater than zero");
+    : thread_nr_(thread_nr),
+      stop_(false) {
+  assert(thread_nr_ > 0);
 
   for (int i = 0; i < thread_nr; ++i) {
-    threads.emplace_back(&ThreadPool::Work, this);
+    work_thread_.emplace_back(&ThreadPool::Work, this);
     LOG_DEBUG("new thread %d success", i);
   }
 }
 
-ThreadPool::ThreadPool() {
+ThreadPool::~ThreadPool() {
   stop_.store(true);
   condition_variable_.notify_all();
 
-  for (auto item : work_thread_) {
+  for (auto &item : work_thread_) {
     if (item.joinable()) {
         item.join();
     }
   }
 }
 
-std::function<int()>& ThreadPool::GetOneTask() {
-  std::unique_lock<std::mutex> lock(this->lock);
+void_arg_task ThreadPool::GetOneTask() {
+  std::unique_lock<std::mutex> lock(lock_);
 
   condition_variable_.wait(lock,
     [this](){
       return !(this->task_queue_.empty());
     });
 
-  std::function<int()> task = std::move(task_queue_.front());
+  void_arg_task task = std::move(task_queue_.front());
   task_queue_.pop();
 
   return std::move(task);
 }
 
-void threadpool::Work() {
-  std::function<int()> func;
+void ThreadPool::Work() {
+  void_arg_task task;
   int ret;
 
   while (stop_) {
-    func = GetOneTask();
-    ret = func();
+    task = GetOneTask();
+    ret = task();
     LOG_DEBUG("called users' callback, ret %d", ret);
   }
 }

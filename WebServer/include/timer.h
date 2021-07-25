@@ -7,9 +7,11 @@
 #ifndef _TIMER_H_
 #define _TIMER_H_
 
-#include <time.h>
+#include <memory>
+#include <queue>
+#include <sys/time.h>
 
-#include <config.h>
+#define WEB_SVR_BUFF_SIZE_64  64
 
 class TimeSpace{
  public:
@@ -17,12 +19,13 @@ class TimeSpace{
   TimeSpace(struct timeval *time);
   ~TimeSpace() = default;
 
-  TimeSpace& TimeSpace(const TimeSpace &another);
+  TimeSpace(const TimeSpace &another);
   TimeSpace& operator = (const TimeSpace &another);
 
   bool operator > (const TimeSpace &another);
   bool operator < (const TimeSpace &another);
   void Reset(void);
+  struct timeval *GetTimePtr(void);
   const char *GetTimeStr(void);
 
  private:
@@ -32,9 +35,15 @@ class TimeSpace{
   char time_str_[WEB_SVR_BUFF_SIZE_64];
 };
 
+struct cmp {
+  cmp(const Timer &a, const Timer &b) {
+    return a.time_ < b.time_;
+  }
+};
+
 class Timer {
  public:
-  Timer(std::function<void()> &callback, uint32_t sec, uint32_t usec = 0);
+  Timer(std::function<void()> &callback, unsigned int sec, unsigned int usec = 0);
   ~Timer() = default;
   bool operator < (const Timer &another);
 
@@ -43,13 +52,13 @@ class Timer {
   void RunCallBack(void);
 
  private:
-  std::functional<void()> callback_;
+  std::function<void()> callback_;
   TimeSpace time_;
 };
 
 class TimerQueue {
  public:
-  TimerQueue() = default;
+  TimerQueue();
   ~TimerQueue() = default;
 
  private:

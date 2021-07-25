@@ -7,39 +7,65 @@
 #ifndef _EPOLLER_H_
 #define _EPOLLER_H_
 
-typedef struct {
- public:
-  std::function<int()> read_callback_;
-  std::function<int()> write_callback_;
+#include <common.h>
 
-  Callback(std::function<int()> &callback1, std::function<int()> &callback2)
+ class Callback {
+ public:
+  std::function<int(Epoller *)> read_callback_;
+  std::function<int(Epoller *)> write_callback_;
+
+  Callback() = default;
+  ~Callback() = default;
+
+  Callback(std::function<int(Epoller *)> callback1, 
+          std::function<int(Epoller *)> callback2)
     : read_callback_(std::move(callback1)),
-      write_callback_(std::move(callback2)){
+      write_callback_(std::move(callback2)) {
 
   }
-}Callback;
+      
+  Callback(const Callback &another) {
+    read_callback_ = another.read_callback_;
+    write_callback_ = another.write_callback_;
+  }
+
+  Callback& operator = (const Callback &another) {
+    read_callback_ = another.read_callback_;
+    write_callback_ = another.write_callback_;
+    return *this;
+  }
+  
+  void SetReadCallback(std::function<int(Epoller *)> callbck) {
+    read_callback_ = std::move(callbck);
+  }
+  
+  void SetWriteCallback(std::function<int(Epoller *)> callback) {
+    write_callback_ = std::move(callback);
+  }
+};
 
 class Epoller {
  public:
-  static Epoller *CreateEpoller(uint32_t event_num);
-  int AddReadEvent(int fd, std::function<int()> &callback);
-  int AddWriteEvent(int fd, std::function<int()> &callback);
-  int AddReadWriteEvent(int fd, std::function<int()> &read_cb, 
-    std::function<int> &write_cb);
+  static Epoller *CreateEpoller(unsigned int event_num, Server *server);
+  int AddReadEvent(int fd, std::function<int(Epoller *)> callback);
+  int AddWriteEvent(int fd, std::function<int(Epoller *)> callback);
+  int AddReadWriteEvent(int fd, std::function<int(Epoller *)> read_cb, 
+    std::function<int(Epoller *)> write_cb);
   void EpollWait(int timeout);
-  int DelFd(int fd);
+  void DelFd(int fd);
 
   ~Epoller();
 
  private:
-  Epoller(uint32_t event_num, int listen_fd);
-  int EpollCtl(int flag, int fd, int32_t event, void *arg);
+  Epoller(unsigned int event_num, Server *server);
+  int EpollCtl(int flag, int fd, int event, void *arg);
 
-  const uint32_t event_num_;
+  const unsigned int event_num_;
   const int fd_;
+  Server *server_;
   std::vector<struct epoll_event> event_arr_;
   std::unordered_map<int, Callback> event_callbck_;
-  std::unordered_map<int, uint32_t> fd_event_;
+  std::unordered_map<int, unsigned int> fd_event_;
   struct epoll_event event_;
 };
 

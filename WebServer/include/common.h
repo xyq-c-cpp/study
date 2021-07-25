@@ -11,11 +11,28 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include <stdlib.h>
+#include <string.h>
 #include <sys/epoll.h>
 #include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <errno.h>
 #include <limits.h>
+#include <stdarg.h>
+#include <vector>
+#include <queue>
+#include <memory>
+#include <functional>
+#include <string>
+#include <unordered_map>
+#include <condition_variable>
+#include <atomic>
+#include <thread>
+#include <assert.h>
+
+#include <config.h>
 
 #define WEB_SVR_BUFF_SIZE_32      32
 #define WEB_SVR_BUFF_SIZE_64      64
@@ -26,35 +43,29 @@
 #define WEB_SVR_BUFF_SIZE_2048    2048
 #define WEB_SVR_BUFF_SIZE_4096    4096
 
+class TimeSpace;
+class Timer;
+class TimerQueue;
+class Message;
+class Channal;
+class Server;
+class ThreadPool;
+class Epoller;
+class Connector;
+class Log;
+
+#include <log.h>
+
 #define EPOLL_WAIT_BLOCK          -1
 #define EPOLL_WAIT_RET_IMMEDIATE  0
 
-class Log;
-class TimeSpace;
-class Timer;
-class Message;
-
-extern Log *g_logger;
-
-#define LOG_DEBUG(fmt, ...) do { \
-  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, DEBUG, fmt, ##__VA_ARGS__); \
-} while (0)
-
-#define LOG_WARN(fmt, ...) do { \
-  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, WARN, fmt, ##__VA_ARGS__); \
-} while (0)
-
-#define LOG_ERROR(fmt, ...) do { \
-  g_logger.Logging(__FILE__, __LINE__, __FUNCTION__, ERROR, fmt, ##__VA_ARGS__); \
-} while (0)
+using Task = std::function<int(std::shared_ptr<Channal>, std::shared_ptr<Message>)>;
 
 int web_svr_log_init(void);
 int web_svr_add_timer();
-bool web_svr_set_fd_no_block(int32_t fd);
-bool web_svr_epoll_ctl(int32_t epoll_fd, int32_t flag, void *req,
-  int32_t fd, __int32_t events);
-int32_t web_svr_read(int32_t fd, uint8_t *buf, uint32_t len);
-int32_t web_svr_write(int32_t fd, uint8_t buf, uint32_t len);
+bool web_svr_set_fd_no_block(int fd);
+int web_svr_read(int fd, char *buf, unsigned int len);
+int web_svr_write(int fd, char *buf, unsigned int len);
 
 #endif
 
