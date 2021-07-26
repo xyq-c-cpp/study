@@ -22,12 +22,12 @@ TimeSpace& TimeSpace::operator = (const TimeSpace &another) {
   return *this;
 }
 
-bool TimeSpace::operator > (const TimeSpace &another) {
+bool TimeSpace::operator > (const TimeSpace &another) const {
   return time_.tv_sec > another.time_.tv_sec || 
     time_.tv_usec > another.time_.tv_usec;
 }
 
-bool TimeSpace::operator < (const TimeSpace &another) {
+bool TimeSpace::operator < (const TimeSpace &another) const {
   return time_.tv_sec < another.time_.tv_sec || 
     time_.tv_usec < another.time_.tv_usec;
 }
@@ -90,12 +90,12 @@ void Timer::RunCallBack(void) {
   callback_();
 }
 
-bool Timer::operator < (const Timer &another) {
+bool Timer::operator < (const Timer &another) const {
   return time_ < another.time_;
 }
 
 TimerQueue::TimerQueue() 
-  : time_queue_(std::priority_queue<Timer, std::vector<Timer>, cmp>()){
+  : time_queue_(std::priority_queue<Timer, std::vector<Timer>>()){
 
 }
 

@@ -22,8 +22,8 @@ class TimeSpace{
   TimeSpace(const TimeSpace &another);
   TimeSpace& operator = (const TimeSpace &another);
 
-  bool operator > (const TimeSpace &another);
-  bool operator < (const TimeSpace &another);
+  bool operator > (const TimeSpace &another) const;
+  bool operator < (const TimeSpace &another) const;
   void Reset(void);
   struct timeval *GetTimePtr(void);
   const char *GetTimeStr(void);
@@ -35,17 +35,11 @@ class TimeSpace{
   char time_str_[WEB_SVR_BUFF_SIZE_64];
 };
 
-struct cmp {
-  cmp(const Timer &a, const Timer &b) {
-    return a.time_ < b.time_;
-  }
-};
-
 class Timer {
  public:
   Timer(std::function<void()> &callback, unsigned int sec, unsigned int usec = 0);
   ~Timer() = default;
-  bool operator < (const Timer &another);
+  bool operator < (const Timer &another) const;
 
   bool IsTimeOut(void);
   TimeSpace& GetTime(void);

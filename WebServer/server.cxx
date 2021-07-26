@@ -45,7 +45,7 @@ void Server::Erase(int fd) {
 }
 
 void Server::EventProc(Task callback) {
-  pool_->Insert(std::function<int()>(callback));
+  pool_->Insert(std::move(callback));
 }
 
 void Server::Start(void) {
