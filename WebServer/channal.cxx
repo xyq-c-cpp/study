@@ -42,8 +42,8 @@ int Channal::ReadEventProc(Epoller *epoller) {
     return -1;
   }
 
-  server_->EventProc(std::move(std::bind(&Message::ProcMessage, *(msg.get()), 
-    GetSharedPtrFromThis(), msg)));
+  server_->InQueue(std::bind(&Message::ProcMessage, *(msg.get()), 
+    GetSharedPtrFromThis(), msg));
 }
 
 int Channal::WriteEventProc(Epoller *epoller) {

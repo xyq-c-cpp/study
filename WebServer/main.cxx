@@ -12,7 +12,7 @@
 #include <server.h>
 
 int main(int argc, char *argv[]) {
-  Server *server = Server::CreateServer(8888, 8, 35000);
+  Server *server = Server::CreateServer(8888, 8, 2000);
   
   server->Start();
 

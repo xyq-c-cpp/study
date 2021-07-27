@@ -14,6 +14,7 @@ Connector *Connector::CreateConnector(int port, Server *server,
   static Connector *tmp = nullptr;
   assert(port > 0 && port < 65536);
   assert(server != nullptr);
+  assert(epoller != nullptr);
 
   if (!tmp) {
     tmp = new Connector(port, server, epoller, listen_cnt);
@@ -48,7 +49,7 @@ int Connector::Connect(Epoller *epoller) {
       close(fd);
       continue;
     }
-
+#if 0
     ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, static_cast<void *>(&keepalive), 
       sizeof(keepalive));
     if (!ret) {
@@ -56,7 +57,7 @@ int Connector::Connect(Epoller *epoller) {
       close(fd);
       continue;
     }
-
+#endif
     std::shared_ptr<Channal> tmp(new Channal(fd, server_));
     if (!tmp.get()) {
       LOG_ERROR("new channal failed, fd %d", fd);
@@ -64,9 +65,9 @@ int Connector::Connect(Epoller *epoller) {
       continue;
     }
 
-    ret = epoller_->AddReadWriteEvent(fd, std::move(std::bind(&Channal::ReadEventProc, 
-      tmp.get(), std::placeholders::_1)), std::move(std::bind(&Channal::WriteEventProc,
-      tmp.get(), std::placeholders::_1)));
+    ret = epoller_->AddReadWriteEvent(fd, std::bind(&Channal::ReadEventProc, 
+      tmp.get(), std::placeholders::_1), std::bind(&Channal::WriteEventProc,
+      tmp.get(), std::placeholders::_1));
     if (ret) {
       LOG_ERROR("add fd %d to epoll failed", fd);
       epoller_->DelFd(fd);
@@ -76,6 +77,10 @@ int Connector::Connect(Epoller *epoller) {
 
     LOG_DEBUG("create channal success, fd %d", fd);
   }
+
+  ret = epoller_->AddReadEvent(fd_, std::bind(&Connector::Connect, this,
+    std::placeholders::_1));
+  assert(ret == 0);
 }
 
 Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
@@ -95,7 +100,7 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
 
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
     sizeof(reuseaddr));
-  assert(!ret);
+  assert(ret == 0);
 
   memset(&addr, 0, sizeof(addr));
   addr.sin_family = AF_INET;
@@ -103,17 +108,22 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   ret = bind(fd_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  assert(!ret);
+  assert(ret == 0);
 
   ret = listen(fd_, listen_cnt_);
-  assert(!ret);
+  assert(ret == 0);
 
   ret = web_svr_set_fd_no_block(fd_);
-  assert(ret);
+  assert(ret == true);
 
-  ret = epoller_->AddReadEvent(fd_, std::move(std::bind(&Connector::Connect, *this,
-    std::placeholders::_1)));
+  /* Do not pass the object, while the function object pass to another, the object 
+    will be destruct. */
+  ret = epoller_->AddReadEvent(fd_, std::bind(&Connector::Connect, this,
+    std::placeholders::_1));
   assert(ret == 0);
 }
 
+Connector::~Connector() {
+  close(fd_);
+}
 

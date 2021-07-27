@@ -23,7 +23,7 @@ class Server
   void Start(void);
   void Insert(std::pair<int, std::shared_ptr<Channal> > channal);
   void Erase(int fd);
-  void EventProc(Task callback);
+  void InQueue(Task callback);
 
  private:
   Server(int port, int thread_nr, int listen_cnt);

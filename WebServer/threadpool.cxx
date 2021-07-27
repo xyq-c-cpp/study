@@ -11,7 +11,7 @@
 #include "threadpool.h"
 
 ThreadPool *ThreadPool::CreatePool(int thread_nr) {
-  ThreadPool *tmp = nullptr;
+  static ThreadPool *tmp = nullptr;
 
   if (!tmp) {
     tmp = new ThreadPool(thread_nr);

@@ -44,7 +44,7 @@ void Server::Erase(int fd) {
   channal_map_.erase(fd);
 }
 
-void Server::EventProc(Task callback) {
+void Server::InQueue(Task callback) {
   pool_->Insert(std::move(callback));
 }
 

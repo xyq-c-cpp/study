@@ -30,6 +30,7 @@
 #include <condition_variable>
 #include <atomic>
 #include <thread>
+#include <iostream>
 #include <assert.h>
 
 #include <config.h>
@@ -59,7 +60,8 @@ class Log;
 #define EPOLL_WAIT_BLOCK          -1
 #define EPOLL_WAIT_RET_IMMEDIATE  0
 
-using Task = std::function<int(std::shared_ptr<Channal>, std::shared_ptr<Message>)>;
+typedef std::function<int(void)> Task;
+typedef std::function<int(Epoller *)> EventCb;
 
 int web_svr_log_init(void);
 int web_svr_add_timer();

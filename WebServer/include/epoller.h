@@ -11,14 +11,13 @@
 
  class Callback {
  public:
-  std::function<int(Epoller *)> read_callback_;
-  std::function<int(Epoller *)> write_callback_;
+  EventCb read_callback_;
+  EventCb write_callback_;
 
   Callback() = default;
   ~Callback() = default;
 
-  Callback(std::function<int(Epoller *)> callback1, 
-          std::function<int(Epoller *)> callback2)
+  Callback(EventCb callback1, EventCb callback2)
     : read_callback_(std::move(callback1)),
       write_callback_(std::move(callback2)) {
 
@@ -35,11 +34,11 @@
     return *this;
   }
   
-  void SetReadCallback(std::function<int(Epoller *)> callbck) {
+  void SetReadCallback(EventCb callbck) {
     read_callback_ = std::move(callbck);
   }
   
-  void SetWriteCallback(std::function<int(Epoller *)> callback) {
+  void SetWriteCallback(EventCb callback) {
     write_callback_ = std::move(callback);
   }
 };
@@ -47,12 +46,12 @@
 class Epoller {
  public:
   static Epoller *CreateEpoller(unsigned int event_num, Server *server);
-  int AddReadEvent(int fd, std::function<int(Epoller *)> callback);
-  int AddWriteEvent(int fd, std::function<int(Epoller *)> callback);
-  int AddReadWriteEvent(int fd, std::function<int(Epoller *)> read_cb, 
-    std::function<int(Epoller *)> write_cb);
+  int AddReadEvent(int fd, EventCb callback);
+  int AddWriteEvent(int fd, EventCb callback);
+  int AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb);
   void EpollWait(int timeout);
   void DelFd(int fd);
+  int GetEpollFd(void) {return fd_;}
 
   ~Epoller();
 
@@ -66,7 +65,6 @@ class Epoller {
   std::vector<struct epoll_event> event_arr_;
   std::unordered_map<int, Callback> event_callbck_;
   std::unordered_map<int, unsigned int> fd_event_;
-  struct epoll_event event_;
 };
 
 #endif

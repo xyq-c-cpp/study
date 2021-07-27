@@ -62,11 +62,12 @@ void Log::Logging(const char *file, unsigned int line, const char *func,
   assert(func != nullptr);
 
   num = snprintf(tmp, sizeof(tmp) - 1, "%s %s(%d) %-8s %s ", time_->GetTimeStr(), 
-    file, line, GetLogLevelStr(level), func);
+    strrchr(file, '/') + 1, line, GetLogLevelStr(level), func);
 
   va_start(va, fmt);
-  vsnprintf(tmp + num, sizeof(tmp) - num - 1, "%s\n", va);
+  num += vsnprintf(tmp + num, sizeof(tmp) - num - 1, fmt, va);
   va_end(va);
+  strncat(tmp, "\n", sizeof(tmp));
 
   std::lock_guard<std::mutex> local_lock(lock_);
   buff_ += tmp;
@@ -75,6 +76,7 @@ void Log::Logging(const char *file, unsigned int line, const char *func,
   (void)web_svr_write(fileno(fd_), const_cast<char *>(buff_.c_str()), 
     buff_.size());
   buff_.clear();
+  std::cout << tmp << std::endl;
 #endif
 }
 

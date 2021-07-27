@@ -39,19 +39,22 @@ Epoller::~Epoller() {
 }
 
 int Epoller::EpollCtl(int flag, int fd, int event, void *arg) {
-  event_.data.ptr = arg;
-  event_.events = event;
+  struct epoll_event ev;
 
-  return epoll_ctl(fd_, flag, fd, &event_);
+  ev.data.ptr = arg;
+  ev.data.fd = fd;
+  ev.events = event;
+
+  return epoll_ctl(fd_, flag, fd, &ev);
 }
 
-int Epoller::AddReadEvent(int fd, std::function<int(Epoller *)> callback) {
+int Epoller::AddReadEvent(int fd, EventCb callback) {
   unsigned int event = EPOLLIN | EPOLLET | EPOLLONESHOT;
 
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
-      std::function<int(Epoller *)>())));
+      EventCb())));
     goto end;
   } else {
     event = fd_event_[fd];
@@ -64,19 +67,20 @@ int Epoller::AddReadEvent(int fd, std::function<int(Epoller *)> callback) {
     tmp.SetReadCallback(std::move(callback));
     event_callbck_.erase(fd);
     event_callbck_.insert(std::make_pair(fd, tmp));
+    return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 
 end:
-  return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
+  return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
 }
 
-int Epoller::AddWriteEvent(int fd, std::function<int(Epoller *)> callback) {
+int Epoller::AddWriteEvent(int fd, EventCb callback) {
   unsigned int event = EPOLLOUT | EPOLLET | EPOLLONESHOT;
 
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
-      std::function<int(Epoller *)>())));
+      EventCb())));
     goto end;
   } else {
     event = fd_event_[fd];
@@ -89,14 +93,14 @@ int Epoller::AddWriteEvent(int fd, std::function<int(Epoller *)> callback) {
     tmp.SetWriteCallback(std::move(callback));
     event_callbck_.erase(fd);
     event_callbck_.insert(std::make_pair(fd, tmp));
+    return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 
 end:
-  return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
+  return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
 }
 
-int Epoller::AddReadWriteEvent(int fd, std::function<int(Epoller *)> read_cb, 
-    std::function<int(Epoller *)> write_cb) {
+int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb) {
   unsigned int event = EPOLLOUT | EPOLLOUT | EPOLLET | EPOLLONESHOT;
 
   if (fd_event_.find(fd) == fd_event_.end()) {
@@ -117,6 +121,7 @@ int Epoller::AddReadWriteEvent(int fd, std::function<int(Epoller *)> read_cb,
     tmp.SetReadCallback(std::move(read_cb));
     event_callbck_.erase(fd);
     event_callbck_.insert(std::make_pair(fd, tmp));
+    return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 
 end:
