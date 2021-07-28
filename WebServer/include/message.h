@@ -42,8 +42,7 @@ class Message : public std::enable_shared_from_this<Message> {
   Message(Message &&another);
   ~Message() = default;
   
-  int ProcMessage(std::shared_ptr<Channal> channal, 
-    std::shared_ptr<Message> message);
+  int ProcMessage(std::shared_ptr<Channal> channal);
 
   void Reset();
 

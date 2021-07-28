@@ -37,7 +37,7 @@ int Connector::Connect(Epoller *epoller) {
     fd = accept(fd_, reinterpret_cast<struct sockaddr *>(&addr), 
       reinterpret_cast<socklen_t *>(&len));
     if (fd <= 0) {
-      LOG_ERROR("accept fd failed, fd val %d, exit accept", fd);
+      LOG_ERROR("accept fd failed, fd val %d, errno %d, exit accept", fd, errno);
       break;
     }
 
@@ -66,21 +66,20 @@ int Connector::Connect(Epoller *epoller) {
     }
 
     ret = epoller_->AddReadWriteEvent(fd, std::bind(&Channal::ReadEventProc, 
-      tmp.get(), std::placeholders::_1), std::bind(&Channal::WriteEventProc,
-      tmp.get(), std::placeholders::_1));
+      tmp->GetSharedPtrFromThis(), epoller), std::bind(&Channal::WriteEventProc,
+      tmp->GetSharedPtrFromThis(), epoller), 
+      EPOLLIN | EPOLLOUT| EPOLLONESHOT | EPOLLET);
     if (ret) {
       LOG_ERROR("add fd %d to epoll failed", fd);
       epoller_->DelFd(fd);
       continue;
     }
-    server_->Insert(std::make_pair(fd, tmp));
+    server_->InsertChannal(std::make_pair(fd, tmp));
 
     LOG_DEBUG("create channal success, fd %d", fd);
   }
 
-  ret = epoller_->AddReadEvent(fd_, std::bind(&Connector::Connect, this,
-    std::placeholders::_1));
-  assert(ret == 0);
+  LOG_DEBUG("finish connectting, exit from loop");
 }
 
 Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
@@ -98,6 +97,9 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
   assert(server_ != nullptr);
   assert(epoller_ != nullptr);
 
+  ret = web_svr_set_fd_no_block(fd_);
+  assert(ret == true);
+
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
     sizeof(reuseaddr));
   assert(ret == 0);
@@ -111,15 +113,6 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
   assert(ret == 0);
 
   ret = listen(fd_, listen_cnt_);
-  assert(ret == 0);
-
-  ret = web_svr_set_fd_no_block(fd_);
-  assert(ret == true);
-
-  /* Do not pass the object, while the function object pass to another, the object 
-    will be destruct. */
-  ret = epoller_->AddReadEvent(fd_, std::bind(&Connector::Connect, this,
-    std::placeholders::_1));
   assert(ret == 0);
 }
 

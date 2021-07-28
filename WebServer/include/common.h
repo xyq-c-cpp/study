@@ -61,7 +61,7 @@ class Log;
 #define EPOLL_WAIT_RET_IMMEDIATE  0
 
 typedef std::function<int(void)> Task;
-typedef std::function<int(Epoller *)> EventCb;
+typedef std::function<int(void)> EventCb;
 
 int web_svr_log_init(void);
 int web_svr_add_timer();

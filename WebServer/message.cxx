@@ -153,8 +153,7 @@ int Message::ParseHeader() {
   return -1;
 }
 
-int Message::ProcMessage(std::shared_ptr<Channal> channal, 
-    std::shared_ptr<Message> message) {
+int Message::ProcMessage(std::shared_ptr<Channal> channal) {
   int ret;
   
   ret = AnalyseMsg();

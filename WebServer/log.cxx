@@ -7,6 +7,7 @@
 
 #include <log.h>
 #include <timer.h>
+#include <config.h>
 
 Log *g_logger = Log::CreateLogger();
 
@@ -67,7 +68,6 @@ void Log::Logging(const char *file, unsigned int line, const char *func,
   va_start(va, fmt);
   num += vsnprintf(tmp + num, sizeof(tmp) - num - 1, fmt, va);
   va_end(va);
-  strncat(tmp, "\n", sizeof(tmp));
 
   std::lock_guard<std::mutex> local_lock(lock_);
   buff_ += tmp;
@@ -76,7 +76,7 @@ void Log::Logging(const char *file, unsigned int line, const char *func,
   (void)web_svr_write(fileno(fd_), const_cast<char *>(buff_.c_str()), 
     buff_.size());
   buff_.clear();
-  std::cout << tmp << std::endl;
+  std::cout << tmp;
 #endif
 }
 

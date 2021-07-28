@@ -43,15 +43,15 @@ class Log {
 extern Log *g_logger;
 
 #define LOG_DEBUG(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_DEBUG, fmt, ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_DEBUG, fmt"\n", ##__VA_ARGS__); \
 } while (0)
 
 #define LOG_WARN(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_WARN, fmt, ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_WARN, fmt"\n", ##__VA_ARGS__); \
 } while (0)
 
 #define LOG_ERROR(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, fmt, ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, fmt"\n", ##__VA_ARGS__); \
 } while (0)
 
 #endif /* _LOG_H_ */

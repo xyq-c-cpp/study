@@ -38,94 +38,55 @@ Epoller::~Epoller() {
   close(fd_);
 }
 
-int Epoller::EpollCtl(int flag, int fd, int event, void *arg) {
+int Epoller::EpollCtl(int op, int fd, int event, void *arg) {
   struct epoll_event ev;
 
   ev.data.ptr = arg;
   ev.data.fd = fd;
   ev.events = event;
 
-  return epoll_ctl(fd_, flag, fd, &ev);
+  return epoll_ctl(fd_, op, fd, &ev);
 }
 
-int Epoller::AddReadEvent(int fd, EventCb callback) {
-  unsigned int event = EPOLLIN | EPOLLET | EPOLLONESHOT;
-
+int Epoller::AddReadEvent(int fd, EventCb callback, int event) {
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
       EventCb())));
-    goto end;
+    return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
-    event = fd_event_[fd];
-    if (event & EPOLLIN) { /* it should be the second time to call */
-      goto end;
-    }
-    event |= EPOLLIN;
     fd_event_[fd] = event;
-    Callback tmp = event_callbck_[fd];
-    tmp.SetReadCallback(std::move(callback));
-    event_callbck_.erase(fd);
-    event_callbck_.insert(std::make_pair(fd, tmp));
+    event_callbck_[fd].SetReadCallback(std::move(callback));
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
-
-end:
-  return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
 }
 
-int Epoller::AddWriteEvent(int fd, EventCb callback) {
-  unsigned int event = EPOLLOUT | EPOLLET | EPOLLONESHOT;
-
+int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
       EventCb())));
-    goto end;
+    return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
-    event = fd_event_[fd];
-    if (event & EPOLLOUT) {
-      goto end;
-    }
-    event |= EPOLLOUT;
     fd_event_[fd] = event;
-    Callback tmp = event_callbck_[fd];
-    tmp.SetWriteCallback(std::move(callback));
-    event_callbck_.erase(fd);
-    event_callbck_.insert(std::make_pair(fd, tmp));
+    event_callbck_[fd].SetWriteCallback(std::move(callback));
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
-
-end:
-  return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
 }
 
-int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb) {
-  unsigned int event = EPOLLOUT | EPOLLOUT | EPOLLET | EPOLLONESHOT;
-
+int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int event) {
   if (fd_event_.find(fd) == fd_event_.end()) {
     LOG_DEBUG("The first time to add read-write event, fd %d", fd);
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(read_cb), 
       std::move(write_cb))));
-    goto end;
+    return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
-    event = fd_event_[fd];
-    if (event & EPOLLIN && event & EPOLLOUT) {
-      goto end;
-    }
-    event |= EPOLLIN | EPOLLOUT;
     fd_event_[fd] = event;
-    Callback tmp = event_callbck_[fd];
-    tmp.SetWriteCallback(std::move(write_cb));
-    tmp.SetReadCallback(std::move(read_cb));
-    event_callbck_.erase(fd);
-    event_callbck_.insert(std::make_pair(fd, tmp));
+    event_callbck_[fd].SetReadCallback(std::move(read_cb));
+    event_callbck_[fd].SetWriteCallback(std::move(write_cb));
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
-
-end:
-  return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
 }
 
 void Epoller::EpollWait(int timeout) {
@@ -141,18 +102,18 @@ void Epoller::EpollWait(int timeout) {
 
   for (int i = 0; i < ret; ++i) {
     if (event_arr_[i].events & EPOLLIN) {
-      callback_ret = event_callbck_[event_arr_[i].data.fd].read_callback_(this);
+      callback_ret = event_callbck_[event_arr_[i].data.fd].RunReadCallback();
       LOG_DEBUG("fd read callbck ret %d, fd %d", callback_ret, \
         event_arr_[i].data.fd);
     } else if (event_arr_[i].events & EPOLLOUT) {
-      callback_ret = event_callbck_[event_arr_[i].data.fd].write_callback_(this);
+      callback_ret = event_callbck_[event_arr_[i].data.fd].RunWriteCallback();
       LOG_DEBUG("fd write callbck ret %d, fd %d", callback_ret, \
         event_arr_[i].data.fd);
     } else {
       LOG_DEBUG("No expected event %d, fd %d, close it", event_arr_[i].events, \
         event_arr_[i].data.fd);
       DelFd(event_arr_[i].data.fd);
-      server_->Erase(event_arr_[i].data.fd);
+      server_->EraseChannal(event_arr_[i].data.fd);
       (void)close(event_arr_[i].data.fd);
       continue;
     }

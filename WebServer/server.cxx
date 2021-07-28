@@ -30,22 +30,29 @@ Server::Server(int port, int thread_nr, int listen_cnt)
     epoller_(Epoller::CreateEpoller(listen_cnt + 1, this)),
     pool_(ThreadPool::CreatePool(thread_nr)),
     timer_queue_(new TimerQueue()),
-    connector_(Connector::CreateConnector(port, this, epoller_, listen_cnt)) {
+    connector_(std::shared_ptr<Connector>(
+      Connector::CreateConnector(port, this, epoller_, listen_cnt))) {
   assert(epoller_ != nullptr);
   assert(pool_ != nullptr);
-  assert(connector_ != nullptr);
+  assert(connector_.get() != nullptr);
+  
+  /* Do not pass the object, while the function object pass to another, the object 
+    will be destruct. */
+  int ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
+    connector_, epoller_), EPOLLIN | EPOLLET);
+  assert(ret == 0);
 }
 
-void Server::Insert(std::pair<int, std::shared_ptr<Channal> > channal) {
+void Server::InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal) {
   channal_map_.insert(std::move(channal));
 }
 
-void Server::Erase(int fd) {
+void Server::EraseChannal(int fd) {
   channal_map_.erase(fd);
 }
 
-void Server::InQueue(Task callback) {
-  pool_->Insert(std::move(callback));
+void Server::TaskInQueue(Task callback) {
+  pool_->InsertTask(std::move(callback));
 }
 
 void Server::Start(void) {

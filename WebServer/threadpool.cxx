@@ -21,7 +21,7 @@ ThreadPool *ThreadPool::CreatePool(int thread_nr) {
   return tmp;
 }
 
-void ThreadPool::Insert(void_arg_task callback) {
+void ThreadPool::InsertTask(void_arg_task callback) {
   {
     std::lock_guard<std::mutex> local_lock(lock_);
 

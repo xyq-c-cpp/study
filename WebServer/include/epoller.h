@@ -11,9 +11,6 @@
 
  class Callback {
  public:
-  EventCb read_callback_;
-  EventCb write_callback_;
-
   Callback() = default;
   ~Callback() = default;
 
@@ -33,22 +30,34 @@
     write_callback_ = another.write_callback_;
     return *this;
   }
-  
-  void SetReadCallback(EventCb callbck) {
-    read_callback_ = std::move(callbck);
+
+  void SetReadCallback(EventCb cb) {
+    read_callback_ = std::move(cb);
   }
-  
-  void SetWriteCallback(EventCb callback) {
-    write_callback_ = std::move(callback);
+
+  void SetWriteCallback(EventCb cb) {
+    write_callback_ = std::move(cb);
   }
+
+  int RunReadCallback(void) {
+    return read_callback_();
+  }
+
+  int RunWriteCallback(void) {
+    return write_callback_();
+  }
+
+ private:
+  EventCb read_callback_;
+  EventCb write_callback_;
 };
 
 class Epoller {
  public:
   static Epoller *CreateEpoller(unsigned int event_num, Server *server);
-  int AddReadEvent(int fd, EventCb callback);
-  int AddWriteEvent(int fd, EventCb callback);
-  int AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb);
+  int AddReadEvent(int fd, EventCb callback, int event);
+  int AddWriteEvent(int fd, EventCb callback, int event);
+  int AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int event);
   void EpollWait(int timeout);
   void DelFd(int fd);
   int GetEpollFd(void) {return fd_;}
@@ -57,7 +66,7 @@ class Epoller {
 
  private:
   Epoller(unsigned int event_num, Server *server);
-  int EpollCtl(int flag, int fd, int event, void *arg);
+  int EpollCtl(int op, int fd, int event, void *arg);
 
   const unsigned int event_num_;
   const int fd_;
