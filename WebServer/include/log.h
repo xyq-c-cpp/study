@@ -58,18 +58,18 @@ extern Log *g_logger;
 #else 
 
 /* va_list use at function, __VA_ARGS__ use at macro defination */
-void log(const char *fmt, ...);
+void log(const char *file, int line, const char *func, const char *fmt, ...);
 
 #define LOG_DEBUG(fmt, ...) do {\
-  log(fmt"\n", ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
  } while (0)
 
 #define LOG_WARN(fmt, ...) do {\
-  log(fmt"\n", ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
  } while (0)
 
 #define LOG_ERROR(fmt, ...) do {\
-  log(fmt"\n", ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
  } while (0)
 #endif
 

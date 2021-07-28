@@ -11,11 +11,14 @@
 
 #ifdef DEBUG
 
-void log(const char *fmt, ...) {
+void log(const char *file, int line, const char *func, const char *fmt, ...) {
+  char buf[256] = {0};
+  int num = sprintf(buf, "%s %d %s ", strrchr(file, '/') + 1, line, func);
   va_list va;
   va_start(va, fmt);
-  vprintf(fmt, va);
+  vsprintf(buf + num, fmt, va);
   va_end(va);
+  printf("%s\n", buf);
 }
 
 #endif
