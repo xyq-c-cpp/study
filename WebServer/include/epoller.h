@@ -54,18 +54,22 @@
 
 class Epoller {
  public:
-  static Epoller *CreateEpoller(unsigned int event_num, Server *server);
+  static Epoller *CreateEpoller(unsigned int event_num);
   int AddReadEvent(int fd, EventCb callback, int event);
   int AddWriteEvent(int fd, EventCb callback, int event);
   int AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int event);
   void EpollWait(int timeout);
   void DelFd(int fd);
+  void SetOwn(Server *server) {
+    server_ = server;
+    assert(server_ != nullptr);
+  }
   int GetEpollFd(void) {return fd_;}
 
   ~Epoller();
 
  private:
-  Epoller(unsigned int event_num, Server *server);
+  Epoller(unsigned int event_num);
   int EpollCtl(int op, int fd, int event, void *arg);
 
   const unsigned int event_num_;

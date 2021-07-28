@@ -9,6 +9,17 @@
 #include <timer.h>
 #include <config.h>
 
+#ifdef DEBUG
+
+void log(const char *fmt, ...) {
+  va_list va;
+  va_start(va, fmt);
+  vprintf(fmt, va);
+  va_end(va);
+}
+
+#endif
+
 Log *g_logger = Log::CreateLogger();
 
 const char *log_level2str[] = {

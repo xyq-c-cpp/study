@@ -38,10 +38,6 @@ ThreadPool::ThreadPool(int thread_nr)
       stop_(false) {
   assert(thread_nr_ > 0);
 
-  for (int i = 0; i < thread_nr; ++i) {
-    work_thread_.emplace_back(&ThreadPool::Work, this);
-    LOG_DEBUG("new thread %d success", i);
-  }
 }
 
 ThreadPool::~ThreadPool() {
@@ -52,6 +48,13 @@ ThreadPool::~ThreadPool() {
     if (item.joinable()) {
         item.join();
     }
+  }
+}
+
+void ThreadPool::Init(void) {
+  for (int i = 0; i < thread_nr_; ++i) {
+    work_thread_.emplace_back(&ThreadPool::Work, this);
+    LOG_DEBUG("new thread %d success", i);
   }
 }
 

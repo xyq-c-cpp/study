@@ -7,20 +7,19 @@
 #include <epoller.h>
 #include <server.h>
 
-Epoller::Epoller(unsigned int event_num, Server *server) 
+Epoller::Epoller(unsigned int event_num) 
     : event_num_(event_num), 
       fd_(epoll_create(event_num_)),
-      server_(server),
+      server_(nullptr),
       event_arr_(std::vector<struct epoll_event>(event_num_)) {
   assert(fd_ >= 0);
 }
 
-Epoller *Epoller::CreateEpoller(unsigned int event_num, Server *server) {
+Epoller *Epoller::CreateEpoller(unsigned int event_num) {
   static Epoller *tmp = nullptr;
 
-  assert(server != nullptr);
   if (!tmp) {
-    tmp = new Epoller(event_num, server);
+    tmp = new Epoller(event_num);
     assert(tmp != nullptr);
   }
 

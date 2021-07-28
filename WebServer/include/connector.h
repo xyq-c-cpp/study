@@ -12,14 +12,18 @@
 /* we assume that one server just has one Connector, so that it is a single class */
 class Connector : public std::enable_shared_from_this<Connector> {
  public:
-  static Connector *CreateConnector(int port, Server *server, 
-    Epoller *epoller, int listen_cnt);
+  static Connector *CreateConnector(int port, Epoller *epoller, 
+    int listen_cnt);
   int Connect(Epoller *epoller);
   ~Connector();
-  int Fd(void) {return fd_;}
+  void SetOwn(Server *server) {
+    server_ = server; 
+    assert(server_ != nullptr);
+  }
+  int Fd(void) const {return fd_;}
   
  private:
-  Connector(int port, Server *server, Epoller *epoller, int listen_cnt);
+  Connector(int port, Epoller *epoller, int listen_cnt);
 
   const int port_;
   const int listen_cnt_;

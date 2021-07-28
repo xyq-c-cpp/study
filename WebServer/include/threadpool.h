@@ -20,6 +20,7 @@ class ThreadPool
  public:
   static ThreadPool *CreatePool(int thread_nr);
   void InsertTask(void_arg_task callback);
+  void Init(void);
 
  private:
   ThreadPool(int thread_nr);

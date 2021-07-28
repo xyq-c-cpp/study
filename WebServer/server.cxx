@@ -27,20 +27,26 @@ Server *Server::CreateServer(unsigned int port, int thread_nr, int listen_cnt) {
 
 Server::Server(int port, int thread_nr, int listen_cnt)
   : port_(port),
-    epoller_(Epoller::CreateEpoller(listen_cnt + 1, this)),
+    epoller_(Epoller::CreateEpoller(listen_cnt + 1)),
     pool_(ThreadPool::CreatePool(thread_nr)),
     timer_queue_(new TimerQueue()),
     connector_(std::shared_ptr<Connector>(
-      Connector::CreateConnector(port, this, epoller_, listen_cnt))) {
-  assert(epoller_ != nullptr);
+      Connector::CreateConnector(port, epoller_, listen_cnt))) {
   assert(pool_ != nullptr);
   assert(connector_.get() != nullptr);
+}
+
+int Server::Init(void) {
+  pool_->Init();
   
-  /* Do not pass the object, while the function object pass to another, the object 
-    will be destruct. */
   int ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
     connector_, epoller_), EPOLLIN | EPOLLET);
   assert(ret == 0);
+  
+  epoller_->SetOwn(this);
+
+  connector_->SetOwn(this);
+  
 }
 
 void Server::InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal) {

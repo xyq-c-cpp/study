@@ -9,15 +9,14 @@
 #include <server.h>
 #include <channal.h>
 
-Connector *Connector::CreateConnector(int port, Server *server, 
-    Epoller *epoller, int listen_cnt) {
+Connector *Connector::CreateConnector(int port,Epoller *epoller,
+    int listen_cnt) {
   static Connector *tmp = nullptr;
   assert(port > 0 && port < 65536);
-  assert(server != nullptr);
   assert(epoller != nullptr);
 
   if (!tmp) {
-    tmp = new Connector(port, server, epoller, listen_cnt);
+    tmp = new Connector(port, epoller, listen_cnt);
     assert(tmp != nullptr);
   }
 
@@ -80,28 +79,28 @@ int Connector::Connect(Epoller *epoller) {
   }
 
   LOG_DEBUG("finish connectting, exit from loop");
+  return 0;
 }
 
-Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
+Connector::Connector(int port, Epoller *epoller, int listen_cnt)
   : port_(port),
     listen_cnt_(listen_cnt),
-    server_(server),
+    server_(nullptr),
     epoller_(epoller),
     fd_(socket(AF_INET, SOCK_STREAM, 0)) {
   int ret;
   int reuseaddr = 1;
   struct sockaddr_in addr;
-  unsigned int event = EPOLLIN | EPOLLET;
 
   assert(fd_ >= 0);
-  assert(server_ != nullptr);
   assert(epoller_ != nullptr);
-
+#if 0
   ret = web_svr_set_fd_no_block(fd_);
   assert(ret == true);
-
+#endif
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
     sizeof(reuseaddr));
+  LOG_DEBUG("ret %d, errno %d", ret, errno);
   assert(ret == 0);
 
   memset(&addr, 0, sizeof(addr));
@@ -110,13 +109,16 @@ Connector::Connector(int port, Server *server, Epoller *epoller, int listen_cnt)
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   ret = bind(fd_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
+  LOG_DEBUG("ret %d, errno %d", ret, errno);
   assert(ret == 0);
 
   ret = listen(fd_, listen_cnt_);
+  LOG_DEBUG("ret %d, errno %d", ret, errno);
   assert(ret == 0);
 }
 
 Connector::~Connector() {
+  LOG_DEBUG("close listen fd %d", fd_);
   close(fd_);
 }
 

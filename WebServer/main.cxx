@@ -13,7 +13,8 @@
 
 int main(int argc, char *argv[]) {
   Server *server = Server::CreateServer(8888, 8, 2000);
-  
+
+  server->Init();
   server->Start();
 
   return 0;

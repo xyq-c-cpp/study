@@ -42,6 +42,7 @@ class Log {
 
 extern Log *g_logger;
 
+#ifndef DEBUG
 #define LOG_DEBUG(fmt, ...) do { \
   g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_DEBUG, fmt"\n", ##__VA_ARGS__); \
 } while (0)
@@ -53,6 +54,24 @@ extern Log *g_logger;
 #define LOG_ERROR(fmt, ...) do { \
   g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, fmt"\n", ##__VA_ARGS__); \
 } while (0)
+
+#else 
+
+/* va_list use at function, __VA_ARGS__ use at macro defination */
+void log(const char *fmt, ...);
+
+#define LOG_DEBUG(fmt, ...) do {\
+  log(fmt"\n", ##__VA_ARGS__);\
+ } while (0)
+
+#define LOG_WARN(fmt, ...) do {\
+  log(fmt"\n", ##__VA_ARGS__);\
+ } while (0)
+
+#define LOG_ERROR(fmt, ...) do {\
+  log(fmt"\n", ##__VA_ARGS__);\
+ } while (0)
+#endif
 
 #endif /* _LOG_H_ */
 
