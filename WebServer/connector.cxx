@@ -64,10 +64,8 @@ int Connector::Connect(Epoller *epoller) {
       continue;
     }
 
-    ret = epoller_->AddReadWriteEvent(fd, std::bind(&Channal::ReadEventProc, 
-      tmp->GetSharedPtrFromThis(), epoller), std::bind(&Channal::WriteEventProc,
-      tmp->GetSharedPtrFromThis(), epoller), 
-      EPOLLIN | EPOLLOUT| EPOLLONESHOT | EPOLLET);
+    ret = epoller_->AddReadEvent(fd, std::bind(&Channal::ReadEventProc, 
+      tmp->GetSharedPtrFromThis(), epoller), EPOLLIN | EPOLLONESHOT | EPOLLET);
     if (ret) {
       LOG_ERROR("add fd %d to epoll failed", fd);
       epoller_->DelFd(fd);
@@ -94,13 +92,13 @@ Connector::Connector(int port, Epoller *epoller, int listen_cnt)
 
   assert(fd_ >= 0);
   assert(epoller_ != nullptr);
-#if 0
+
   ret = web_svr_set_fd_no_block(fd_);
   assert(ret == true);
-#endif
+
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
     sizeof(reuseaddr));
-  LOG_DEBUG("ret %d, errno %d", ret, errno);
+  LOG_DEBUG("setsockopt ret %d, errno %d", ret, errno);
   assert(ret == 0);
 
   memset(&addr, 0, sizeof(addr));
@@ -109,11 +107,11 @@ Connector::Connector(int port, Epoller *epoller, int listen_cnt)
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   ret = bind(fd_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  LOG_DEBUG("ret %d, errno %d", ret, errno);
+  LOG_DEBUG("bind ret %d, errno %d", ret, errno);
   assert(ret == 0);
 
   ret = listen(fd_, listen_cnt_);
-  LOG_DEBUG("ret %d, errno %d", ret, errno);
+  LOG_DEBUG("listen ret %d, errno %d", ret, errno);
   assert(ret == 0);
 }
 

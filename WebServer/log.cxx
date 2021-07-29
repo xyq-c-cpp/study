@@ -13,12 +13,18 @@
 
 void log(const char *file, int line, const char *func, const char *fmt, ...) {
   char buf[256] = {0};
+  char time[48] = {0};
+  struct timeval timeval;
+
+  gettimeofday(&timeval, NULL);
+  strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", localtime(&timeval.tv_sec));
+  sprintf(time, "%s %03ld", time, timeval.tv_usec / 1000);
   int num = sprintf(buf, "%s %d %s ", strrchr(file, '/') + 1, line, func);
   va_list va;
   va_start(va, fmt);
   vsprintf(buf + num, fmt, va);
   va_end(va);
-  printf("%s\n", buf);
+  printf("%s %s\n", time, buf);
 }
 
 #endif

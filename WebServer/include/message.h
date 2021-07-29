@@ -56,6 +56,7 @@ class Message : public std::enable_shared_from_this<Message> {
   http_ver_t ver_;
   unsigned int pos_;
   http_way_t way_;
+  std::string path_;
 
   std::unordered_map<std::string, std::string> header_;
   std::string body_;

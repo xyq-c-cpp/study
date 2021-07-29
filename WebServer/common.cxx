@@ -27,19 +27,19 @@ bool web_svr_set_fd_no_block(int fd) {
   return true;
 }
 
-int web_svr_read(int fd, char *buf, unsigned int len) {
-  unsigned int sizetoread = len;
-  unsigned int sum = 0, now_read = 0;
+int web_svr_read(int fd, char *buf, int len) {
+  int sizetoread = len;
+  int sum = 0, now_read = 0;
 
   while (sizetoread > 0) {
     now_read = read(fd, buf + sum, sizetoread);
     if (now_read < 0) {
+      /* No block mode, we shall try again */
       if (errno == EINTR) {
-        now_read = 0;
         continue;
-      } else if (errno == EAGAIN) {
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK )
         return sum;
-      } else {
+      else {
         return -1;
       }
     } else if (now_read == 0) {
@@ -52,15 +52,18 @@ int web_svr_read(int fd, char *buf, unsigned int len) {
   return sum;
 }
 
-int web_svr_write(int fd, char *buf, unsigned int len) {
-  size_t sizetowrite = len;
-  ssize_t sum = 0 , written = 0;
+int web_svr_write(int fd, char *buf, int len) {
+  int sizetowrite = len;
+  int sum = 0 , written = 0;
 
   while (sizetowrite > 0) {
     written = write(fd, buf + sum, sizetowrite);
     if (written < 0) {
-      if(errno == EINTR || errno == EAGAIN) {
+      /* No block mode, we shall try again */
+      if(errno == EINTR) {
         continue;
+      } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        return sum;
       } else {
         return -1;
       }

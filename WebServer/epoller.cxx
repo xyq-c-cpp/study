@@ -99,15 +99,18 @@ void Epoller::EpollWait(int timeout) {
     return;
   }
 
+  LOG_DEBUG("epoll_wait ---> ret %d", ret);
   for (int i = 0; i < ret; ++i) {
+    LOG_DEBUG("process fd %d, event %d, i %d", event_arr_[i].data.fd, 
+      event_arr_[i].events, i);
     if (event_arr_[i].events & EPOLLIN) {
       callback_ret = event_callbck_[event_arr_[i].data.fd].RunReadCallback();
-      LOG_DEBUG("fd read callbck ret %d, fd %d", callback_ret, \
-        event_arr_[i].data.fd);
+      LOG_DEBUG("fd read callbck ret %d, fd %d, event %d", callback_ret, \
+        event_arr_[i].data.fd, event_arr_[i].events);
     } else if (event_arr_[i].events & EPOLLOUT) {
       callback_ret = event_callbck_[event_arr_[i].data.fd].RunWriteCallback();
-      LOG_DEBUG("fd write callbck ret %d, fd %d", callback_ret, \
-        event_arr_[i].data.fd);
+      LOG_DEBUG("fd write callbck ret %d, fd %d, event %d", callback_ret, \
+        event_arr_[i].data.fd, event_arr_[i].events);
     } else {
       LOG_DEBUG("No expected event %d, fd %d, close it", event_arr_[i].events, \
         event_arr_[i].data.fd);

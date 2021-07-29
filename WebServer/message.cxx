@@ -106,21 +106,36 @@ void Message::Reset(void) {
 }
 
 int Message::ParseLine(void) {
-  unsigned int pre_pos = 0, cur_pos = pos_, tmp_pos1, tmp_pos2;
+  unsigned int pre_pos = 0, cur_pos = pos_, tmp_pos1;
 
-  tmp_pos1 = src_msg_.find_first_of(' ', cur_pos);
+  LOG_DEBUG("parse http line, src_msg size %d, pos %d", 
+    src_msg_.size(), pos_);
+  tmp_pos1 = src_msg_.find_first_of(" ", cur_pos);
   if (tmp_pos1 == std::string::npos) {
+    LOG_ERROR("cannot find the http line ' '");
     return -1;
   }
-  way_ = http_way_str2enum(src_msg_.substr(0, tmp_pos1));
+  way_ = http_way_str2enum(src_msg_.substr(cur_pos, tmp_pos1 - cur_pos));
   pre_pos = cur_pos;
-  cur_pos -= tmp_pos1 + 1;
+  cur_pos = tmp_pos1 + 1;
 
-  tmp_pos1 = src_msg_.find_first_of('\r', cur_pos);
+  tmp_pos1 = src_msg_.find_first_of(" ", cur_pos);
   if (tmp_pos1 == std::string::npos) {
+    LOG_ERROR("No find the http line ' '");
     return -1;
   }
-  ver_ = http_ver_str2enum(src_msg_.substr(cur_pos + 1, tmp_pos1 - cur_pos - 1));
+
+  path_ = src_msg_.substr(cur_pos, tmp_pos1 - cur_pos);
+  
+  pre_pos = cur_pos;
+  cur_pos = tmp_pos1 + 1;
+
+  tmp_pos1 = src_msg_.find_first_of("\r", cur_pos);
+  if (tmp_pos1 == std::string::npos) {
+    LOG_ERROR("No find htpp line end");
+    return -1;
+  }
+  ver_ = http_ver_str2enum(src_msg_.substr(cur_pos, tmp_pos1 - cur_pos));
   pos_ = tmp_pos1 + 2;
 
   return 0;
@@ -130,13 +145,15 @@ int Message::ParseHeader() {
   unsigned int tmp1, tmp2;
   std::string key, val;
 
+  LOG_DEBUG("parse http header, pos %d", pos_);
   while (true) {
-    tmp1 = src_msg_.find_first_of('\r', pos_);
+    tmp1 = src_msg_.find_first_of("\r", pos_);
     if (tmp1 != std::string::npos) {
-      tmp2 = src_msg_.find(':', pos_);
+      tmp2 = src_msg_.find_first_of(":", pos_);
       if (tmp2 == std::string::npos) {
         if (tmp1 == tmp2) {
           pos_ += 2;
+          body_ = src_msg_.substr(pos_);
           return 0;
         }
       }
@@ -180,6 +197,7 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
   struct stat st;
   int ret;
 
+  LOG_DEBUG("construct http respone");
   sprintf(buff, "%s %d %s\r\n", ver_int2str[ver_], 200, "OK");
 
   if (header_.find("Connection") != header_.end() &&

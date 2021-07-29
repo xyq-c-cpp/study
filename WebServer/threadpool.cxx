@@ -26,22 +26,24 @@ void ThreadPool::InsertTask(void_arg_task callback) {
     std::lock_guard<std::mutex> local_lock(lock_);
 
     task_queue_.emplace(std::move(callback));
-  }
 
-  condition_variable_.notify_one();
+    condition_variable_.notify_one();
+  }
 
   return;
 }
 
 ThreadPool::ThreadPool(int thread_nr) 
     : thread_nr_(thread_nr),
-      stop_(false) {
+      running_(true),
+      work_thread_(std::vector<std::thread>(0)){
   assert(thread_nr_ > 0);
 
 }
 
 ThreadPool::~ThreadPool() {
-  stop_.store(true);
+  LOG_DEBUG("thread pool exit, ");
+  running_.store(false);
   condition_variable_.notify_all();
 
   for (auto &item : work_thread_) {
@@ -54,30 +56,36 @@ ThreadPool::~ThreadPool() {
 void ThreadPool::Init(void) {
   for (int i = 0; i < thread_nr_; ++i) {
     work_thread_.emplace_back(&ThreadPool::Work, this);
-    LOG_DEBUG("new thread %d success", i);
+    LOG_DEBUG("create thread %d success", i);
   }
-}
-
-void_arg_task ThreadPool::GetOneTask() {
-  std::unique_lock<std::mutex> lock(lock_);
-
-  condition_variable_.wait(lock,
-    [this](){
-      return !(this->task_queue_.empty());
-    });
-
-  void_arg_task task = std::move(task_queue_.front());
-  task_queue_.pop();
-
-  return std::move(task);
 }
 
 void ThreadPool::Work() {
   void_arg_task task;
   int ret;
 
-  while (stop_) {
-    task = GetOneTask();
+  while (running_) {
+    {
+      std::unique_lock<std::mutex> lock(lock_);
+      condition_variable_.wait(lock, 
+        [this](){
+          return !this->task_queue_.empty() || !this->running_.load();
+        }
+      );
+        
+      if (!running_.load()) {
+        LOG_DEBUG("this thread would exit, ppid %d", getppid());
+        return;
+      }
+      
+      if (task_queue_.empty()) {
+        LOG_DEBUG("thread %d spurious wakeup, the task is empty, continue", getppid());
+      }
+      
+      task = std::move(task_queue_.front());
+      task_queue_.pop();
+    }
+  
     ret = task();
     LOG_DEBUG("called users' callback, ret %d", ret);
   }

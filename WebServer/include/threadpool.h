@@ -27,10 +27,9 @@ class ThreadPool
   ~ThreadPool();
   
   void Work(void);
-  void_arg_task GetOneTask();
 
   const int thread_nr_;
-  std::atomic<bool> stop_;
+  std::atomic<bool> running_;
 
   std::vector<std::thread> work_thread_;
   std::queue<void_arg_task> task_queue_;

@@ -24,6 +24,9 @@ class Channal : public std::enable_shared_from_this<Channal> {
   std::shared_ptr<Channal> GetSharedPtrFromThis(void);
 
  private:
+  void AddReadEvent(Epoller *epoller);
+  void AddWriteEvent(Epoller *epoller);
+
   const int fd_;
   Server *server_;
   int in_pos_, out_pos_;
