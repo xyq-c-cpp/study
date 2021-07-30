@@ -26,7 +26,7 @@ static const char *way_int2str[] = {
 };
 
 /* the program is running at the dir of bin */
-#define INDEX_HTML_FILE_PATH   "/data/resource/index.html"
+#define INDEX_HTML_FILE_PATH   "../resource/index.html"
 
 std::unordered_map<std::string, std::string> file_type;
 
@@ -153,7 +153,6 @@ int Message::ParseHeader() {
       if (tmp2 == std::string::npos) {
         if (tmp1 == tmp2) {
           pos_ += 2;
-          body_ = src_msg_.substr(pos_);
           return 0;
         }
       }
@@ -206,12 +205,7 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
     sprintf(buff, "%sKeep-Alive: timeout=%d\r\n", buff, TIMEOUT_TIME);
   }
 
-  pos = path.find_last_of('.');
-  if (pos == std::string::npos)  {
-    file_type = FileType::GetFileType("default").c_str();
-  } else {
-    file_type = FileType::GetFileType(path.substr(pos)).c_str();
-  }
+  file_type = FileType::GetFileType("default").c_str();
 
   if (stat(path.c_str(), &st) < 0) {
     LOG_ERROR("file %s not exist, exit", path.c_str());
@@ -258,12 +252,13 @@ int Message::AnalyseMsg() {
   ret = ParseHeader();
   if (ret) {
     LOG_ERROR("parse http header failed, ret %d", ret);
+    return -1;
   }
 
   body_ = src_msg_.substr(pos_);
 
-  LOG_DEBUG("prase http message finish, http ver %s, way %s\n", \
-    ver_int2str[ver_], way_int2str[way_]);
+  LOG_DEBUG("prase http message finish, http ver %s, way %s, path_ %s\n", \
+    ver_int2str[ver_], way_int2str[way_], path_);
   for (auto& i : header_) {
     LOG_DEBUG("http header, key %s, val %s", i.first.c_str(), i.second.c_str());
   }

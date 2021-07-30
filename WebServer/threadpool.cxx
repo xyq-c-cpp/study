@@ -9,6 +9,7 @@
  */
 
 #include "threadpool.h"
+#include <sys/syscall.h>
 
 ThreadPool *ThreadPool::CreatePool(int thread_nr) {
   static ThreadPool *tmp = nullptr;
@@ -22,13 +23,15 @@ ThreadPool *ThreadPool::CreatePool(int thread_nr) {
 }
 
 void ThreadPool::InsertTask(void_arg_task callback) {
-  {
-    std::lock_guard<std::mutex> local_lock(lock_);
+  LOG_DEBUG("insert task.. ");
 
-    task_queue_.emplace(std::move(callback));
+  std::unique_lock<std::mutex> local_lock(lock_);
 
-    condition_variable_.notify_one();
-  }
+  task_queue_.emplace(std::move(callback));
+
+  condition_variable_.notify_one();
+
+  LOG_DEBUG("queue size %d", task_queue_.size());
 
   return;
 }
@@ -36,13 +39,15 @@ void ThreadPool::InsertTask(void_arg_task callback) {
 ThreadPool::ThreadPool(int thread_nr) 
     : thread_nr_(thread_nr),
       running_(true),
-      work_thread_(std::vector<std::thread>(0)){
+      work_thread_(std::vector<std::thread>(0)),
+      task_queue_(std::queue<void_arg_task>()){
   assert(thread_nr_ > 0);
 
 }
 
 ThreadPool::~ThreadPool() {
   LOG_DEBUG("thread pool exit, ");
+
   running_.store(false);
   condition_variable_.notify_all();
 
@@ -64,6 +69,8 @@ void ThreadPool::Work() {
   void_arg_task task;
   int ret;
 
+  LOG_DEBUG("begin work, current thread id %d", syscall(SYS_gettid));
+
   while (running_) {
     {
       std::unique_lock<std::mutex> lock(lock_);
@@ -74,12 +81,13 @@ void ThreadPool::Work() {
       );
         
       if (!running_.load()) {
-        LOG_DEBUG("this thread would exit, ppid %d", getppid());
+        LOG_DEBUG("this thread would exit, ppid %d", syscall(SYS_gettid));
         return;
       }
       
       if (task_queue_.empty()) {
-        LOG_DEBUG("thread %d spurious wakeup, the task is empty, continue", getppid());
+        LOG_DEBUG("thread %d spurious wakeup, the task is empty, continue", syscall(SYS_gettid));
+        continue;
       }
       
       task = std::move(task_queue_.front());
@@ -89,5 +97,7 @@ void ThreadPool::Work() {
     ret = task();
     LOG_DEBUG("called users' callback, ret %d", ret);
   }
+
+  LOG_DEBUG("end work, current thread id %d", syscall(SYS_gettid));
 }
 
