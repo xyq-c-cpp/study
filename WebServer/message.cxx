@@ -13,8 +13,8 @@
 
 static const char *ver_int2str[] = {
   "HTTP/1.0",
-  "HTTP/1.1"
-  "HTTP/2.0"
+  "HTTP/1.1",
+  "HTTP/2.0",
   "NONE"
 };
 
@@ -45,9 +45,11 @@ static http_way_t http_way_str2enum(std::string way_str) {
 static http_ver_t http_ver_str2enum(std::string ver) {
   if (!strcmp(ver.c_str(), (ver_int2str[0]))) {
     return HTTP_VER_1_0;
-  } else if (!strcmp(ver.c_str(), (ver_int2str[0]))) {
+  } else if (!strcmp(ver.c_str(), (ver_int2str[1]))) {
+    return HTTP_VER_1_1;
+  } else if (!strcmp(ver.c_str(), ver_int2str[2])) {
     return HTTP_VER_2_0;
-  } else {
+  }else {
     return HTTP_VER_NONE;
   }
 }
@@ -149,17 +151,20 @@ int Message::ParseHeader() {
   while (true) {
     tmp1 = src_msg_.find_first_of("\r", pos_);
     if (tmp1 != std::string::npos) {
+      /* the http header is ending */
+      if (tmp1 == pos_) {
+        pos_ += 2;
+        return 0;
+      }
+
       tmp2 = src_msg_.find_first_of(":", pos_);
       if (tmp2 == std::string::npos) {
-        if (tmp1 == tmp2) {
-          pos_ += 2;
-          return 0;
-        }
+        return -1;
       }
 
       key = src_msg_.substr(pos_, tmp2 - pos_);
       val = src_msg_.substr(tmp2 + 1, tmp1 - tmp2 - 1);
-      header_.insert(std::make_pair(key, key));
+      header_.insert(std::make_pair(key, val));
       pos_ = tmp1 + 2;
     } else {
       return -1;
@@ -171,16 +176,18 @@ int Message::ParseHeader() {
 
 int Message::ProcMessage(std::shared_ptr<Channal> channal) {
   int ret;
+
+  LOG_DEBUG("get http message:\n%s", src_msg_.c_str());
   
   ret = AnalyseMsg();
   if (ret) {
-    LOG_ERROR("analyse http message failed");
+    LOG_ERROR("analyse http message failed, ret %d", ret);
     return -1;
   }
 
   ret = MessageRsp(channal);
   if (ret) {
-    LOG_ERROR("the message rsp failed...");
+    LOG_ERROR("the message rsp failed, ret %d", ret);
     return -1;
   }
 
@@ -258,7 +265,7 @@ int Message::AnalyseMsg() {
   body_ = src_msg_.substr(pos_);
 
   LOG_DEBUG("prase http message finish, http ver %s, way %s, path_ %s\n", \
-    ver_int2str[ver_], way_int2str[way_], path_);
+    ver_int2str[ver_], way_int2str[way_], path_.c_str());
   for (auto& i : header_) {
     LOG_DEBUG("http header, key %s, val %s", i.first.c_str(), i.second.c_str());
   }

@@ -12,7 +12,7 @@
 #ifdef DEBUG
 
 void log(const char *file, int line, const char *func, const char *fmt, ...) {
-  char buf[256] = {0};
+  char buf[1024] = {0};
   char time[48] = {0};
   struct timeval timeval;
 
