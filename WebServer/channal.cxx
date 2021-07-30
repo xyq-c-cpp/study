@@ -44,7 +44,7 @@ int Channal::ReadEventProc(Epoller *epoller) {
   memset(in_buffer_, 0, sizeof(in_buffer_));
   read_nr = web_svr_read(fd_, static_cast<char*>(in_buffer_), 
     sizeof(in_buffer_));
-  if (read_nr < 0) {
+  if (read_nr <= 0) {
     LOG_ERROR("invalid read event, fd %d, read_nr %d, errno %d", fd_, 
       read_nr, errno);
     AddReadEvent(epoller);
@@ -80,7 +80,8 @@ int Channal::WriteEventProc(Epoller *epoller) {
       LOG_WARN("write num less than expected num, ret %d, expected %d", ret, 
         out_pos_);
     }
-    LOG_DEBUG("write fd %d bytes stream, ret %d, errno %d", fd_, ret, errno);
+    LOG_DEBUG("write fd bytes stream, fd %d, write num %d, errno %d", fd_, ret, 
+      errno);
     out_pos_ = 0;
   }
   AddReadEvent(epoller);
