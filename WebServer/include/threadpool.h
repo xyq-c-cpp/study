@@ -13,14 +13,15 @@
 
 #include <common.h>
 
-using void_arg_task = std::function<int()>;
-
 class ThreadPool
 {
  public:
   static ThreadPool *CreatePool(int thread_nr);
-  void InsertTask(void_arg_task callback);
+  void InsertTask(Task callback);
   void Init(void);
+  void StopWork() {
+    running_.store(false);
+  }
 
  private:
   ThreadPool(int thread_nr);
@@ -32,7 +33,7 @@ class ThreadPool
   std::atomic<bool> running_;
 
   std::vector<std::thread> work_thread_;
-  std::queue<void_arg_task> task_queue_;
+  std::queue<Task> task_queue_;
 
   std::condition_variable condition_variable_;
   std::mutex lock_;

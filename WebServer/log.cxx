@@ -12,14 +12,15 @@
 #ifdef DEBUG
 
 void log(const char *file, int line, const char *func, const char *fmt, ...) {
-  char buf[1024] = {0};
-  char time[48] = {0};
-  struct timeval timeval;
+  static char buf[WEB_SVR_BUFF_SIZE_1024] = {0};
+  static char time[WEB_SVR_BUFF_SIZE_64] = {0};
+  static struct timeval timeval;
+  int num;
 
   gettimeofday(&timeval, NULL);
   strftime(time, sizeof(time), "%Y-%m-%d %H:%M:%S", localtime(&timeval.tv_sec));
   sprintf(time, "%s %03ld", time, timeval.tv_usec / 1000);
-  int num = sprintf(buf, "%s %d %s ", strrchr(file, '/') + 1, line, func);
+  num = sprintf(buf, "%s %d %s ", strrchr(file, '/') + 1, line, func);
   va_list va;
   va_start(va, fmt);
   vsprintf(buf + num, fmt, va);
@@ -29,7 +30,7 @@ void log(const char *file, int line, const char *func, const char *fmt, ...) {
 
 #endif
 
-Log *g_logger = Log::CreateLogger();
+std::shared_ptr<Log> g_logger(Log::CreateLogger(LOG_LEVEL_DEBUG));
 
 const char *log_level2str[] = {
   "DEBUG",
@@ -37,18 +38,18 @@ const char *log_level2str[] = {
   "ERROR"
 };
 
-Log *Log::CreateLogger(char*file_name) {
+Log *Log::CreateLogger(log_level_t level, const char *file_name) {
   static Log *logger = nullptr;
 
   if (!logger) {
-    logger = new Log(file_name);
+    logger = new Log(file_name, level);
     assert(logger != nullptr);
   }
 
   return logger;
 }
 
-Log::Log(char *file_name, log_level_t level)
+Log::Log(const char *file_name, log_level_t level)
     : level_(level),
       time_(new TimeSpace()) {
   assert(file_name != nullptr);
@@ -63,6 +64,10 @@ Log::~Log() {
   if (fd_) {
     (void)fclose(fd_);
   }
+
+  if (time_) {
+    delete time_;
+  }
 }
 
 const char *Log::GetLogLevelStr(log_level_t level) {
@@ -71,8 +76,7 @@ const char *Log::GetLogLevelStr(log_level_t level) {
 
 void Log::Logging(const char *file, unsigned int line, const char *func, 
     log_level_t level, const char *fmt, ...) {
-  /* a single log is less than 256 bytes */
-  char tmp[WEB_SVR_BUFF_SIZE_256] = {0};
+  static char tmp[WEB_SVR_BUFF_SIZE_256] = {0};
   va_list va;
   int num;
 
@@ -89,30 +93,31 @@ void Log::Logging(const char *file, unsigned int line, const char *func,
   num += vsnprintf(tmp + num, sizeof(tmp) - num - 1, fmt, va);
   va_end(va);
 
-  std::lock_guard<std::mutex> local_lock(lock_);
-  buff_ += tmp;
-
-#ifdef DEBUG
-  (void)web_svr_write(fileno(fd_), const_cast<char *>(buff_.c_str()), 
-    buff_.size());
-  buff_.clear();
-  std::cout << tmp;
-#endif
+  std::unique_lock<std::mutex> lock(lock_);
+  buff_.append(tmp);
 }
 
-void Log::UpdateTime(void) {
-  unsigned int sum, num;
+int Log::UpdateTime(void) {
+  std::string tmp;
 
-  sum = buff_.size();
-  num = web_svr_write(fileno(fd_), const_cast<char*>(buff_.c_str()), 
-    sum);
-  if (num != buff_.size()) {
+  if (buff_.size()) {
+    std::unique_lock<std::mutex> lock(lock_);
+    tmp = buff_;
     buff_.clear();
-    Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, "the size of writing"
-      " dismatch, all num %d, had write num %d", sum, num);
+  } else {
+    LOG_DEBUG("No log message to write at log file....");
   }
-  buff_.clear();
-  (void)gettimeofday(time_->GetTimePtr(), NULL);
-  fflush(fd_);
+
+  if (tmp.size() > 0) {
+    LOG_DEBUG("the logger has %d bytes stream to write to log file", tmp.size());
+ 
+    (void)web_svr_write(fileno(fd_), const_cast<char*>(buff_.c_str()), 
+      tmp.size());
+    fflush(fd_);
+  }
+  
+  (void)gettimeofday(time_->GetTimePtr(), nullptr);
+
+  return 0;
 }
 

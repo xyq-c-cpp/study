@@ -21,7 +21,7 @@ class Server
  public:
   static Server *CreateServer(unsigned int port, int thread_nr, int listen_cnt);
   void Start(void);
-  int Init(void);
+  void Init(void);
   void InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal);
   void EraseChannal(int fd);
   void TaskInQueue(Task callback);

@@ -40,7 +40,7 @@ class Message : public std::enable_shared_from_this<Message> {
   Message(const Message &another);
   Message& operator = (const Message &another);
   Message(Message &&another);
-  ~Message() = default;
+  ~Message();
   
   int ProcMessage(std::shared_ptr<Channal> channal);
 

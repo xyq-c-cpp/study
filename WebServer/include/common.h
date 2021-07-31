@@ -62,9 +62,8 @@ class Log;
 
 typedef std::function<int(void)> Task;
 typedef std::function<int(void)> EventCb;
+typedef std::function<int(void)> TimerCb;
 
-int web_svr_log_init(void);
-int web_svr_add_timer();
 bool web_svr_set_fd_no_block(int fd);
 int web_svr_read(int fd, char *buf, int len);
 int web_svr_write(int fd, char *buf, int len);

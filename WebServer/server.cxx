@@ -17,6 +17,7 @@
 
 Server *Server::CreateServer(unsigned int port, int thread_nr, int listen_cnt) {
   static Server *tmp = nullptr;
+
   if (!tmp) {
     tmp = new Server(port, thread_nr, listen_cnt);
     assert(tmp != nullptr);
@@ -36,17 +37,18 @@ Server::Server(int port, int thread_nr, int listen_cnt)
   assert(connector_.get() != nullptr);
 }
 
-int Server::Init(void) {
+void Server::Init(void) {
   pool_->Init();
   
   int ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
     connector_, epoller_), EPOLLIN | EPOLLET);
   assert(ret == 0);
-  
+
   epoller_->SetOwn(this);
 
   connector_->SetOwn(this);
-  
+
+  timer_queue_->AddTimer(std::bind(&Log::UpdateTime, g_logger), 1, 0, true);
 }
 
 void Server::InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal) {
@@ -62,13 +64,16 @@ void Server::TaskInQueue(Task callback) {
 }
 
 void Server::Start(void) {
-  int event_nr;
-  struct epoll_event *event;
+  int flag;
 
   while (true) {
-    epoller_->EpollWait(EPOLL_WAIT_BLOCK);
+    timer_queue_->TimerProc();
 
-    
+    flag = timer_queue_->GetTimeOfLateTimeOut();
+
+    LOG_DEBUG("The time of epoll_wait : %d", flag);
+ 
+    epoller_->EpollWait(flag);
   }
 }
 

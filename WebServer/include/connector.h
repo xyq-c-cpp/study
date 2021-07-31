@@ -9,7 +9,6 @@
 
 #include <common.h>
 
-/* we assume that one server just has one Connector, so that it is a single class */
 class Connector : public std::enable_shared_from_this<Connector> {
  public:
   static Connector *CreateConnector(int port, Epoller *epoller, 

@@ -19,17 +19,18 @@ typedef enum {
   LOG_LEVEL_MAX
 }log_level_t;
 
-class Log {
+class Log : public std::enable_shared_from_this<Log> {
  public:
-  static Log *CreateLogger(char *file_name = DEFAULT_LOG_FILE);
+  static Log *CreateLogger(log_level_t level, 
+    const char *file_name = DEFAULT_LOG_FILE);
   void Logging(const char *file, unsigned int line, const char *func, 
     log_level_t level, const char *fmt, ...);
+  ~Log();
+  int UpdateTime(void);
 
  private:
-  Log(char *file_name, log_level_t level = LOG_LEVEL_WARN);
-  ~Log();
+  Log(const char *file_name, log_level_t level = LOG_LEVEL_WARN);
   const char *GetLogLevelStr(log_level_t level);
-  void UpdateTime(void);
 
   log_level_t level_;
   TimeSpace *time_;
@@ -40,19 +41,22 @@ class Log {
   std::mutex lock_;
 };
 
-extern Log *g_logger;
+extern std::shared_ptr<Log> g_logger;
 
 #ifndef DEBUG
 #define LOG_DEBUG(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_DEBUG, fmt"\n", ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_DEBUG, fmt"\n", \
+    ##__VA_ARGS__); \
 } while (0)
 
 #define LOG_WARN(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_WARN, fmt"\n", ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_WARN, fmt"\n", \
+    ##__VA_ARGS__); \
 } while (0)
 
 #define LOG_ERROR(fmt, ...) do { \
-  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, fmt"\n", ##__VA_ARGS__); \
+  g_logger->Logging(__FILE__, __LINE__, __FUNCTION__, LOG_LEVEL_ERROR, fmt"\n", \
+    ##__VA_ARGS__); \
 } while (0)
 
 #else 
@@ -61,16 +65,17 @@ extern Log *g_logger;
 void log(const char *file, int line, const char *func, const char *fmt, ...);
 
 #define LOG_DEBUG(fmt, ...) do {\
-  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__); \
  } while (0)
 
 #define LOG_WARN(fmt, ...) do {\
-  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__); \
  } while (0)
 
 #define LOG_ERROR(fmt, ...) do {\
-  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__);\
+  log(__FILE__, __LINE__, __FUNCTION__, fmt, ##__VA_ARGS__); \
  } while (0)
+
 #endif
 
 #endif /* _LOG_H_ */

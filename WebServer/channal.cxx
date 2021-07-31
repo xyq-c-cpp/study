@@ -50,6 +50,7 @@ int Channal::ReadEventProc(Epoller *epoller) {
     AddReadEvent(epoller);
     return -1;
   }
+
   LOG_DEBUG("read msg, size %d, fd %d", read_nr, fd_);
 
   std::shared_ptr<Message> msg(new Message(std::string(in_buffer_)));
@@ -62,28 +63,33 @@ int Channal::ReadEventProc(Epoller *epoller) {
   server_->TaskInQueue(std::bind(&Message::ProcMessage, msg, 
     GetSharedPtrFromThis()));
   AddWriteEvent(epoller);
+
   return 0;
 }
 
 int Channal::WriteEventProc(Epoller *epoller) {
+  int ret;
+
   {
     std::lock_guard<std::mutex> lock(lock_);
 
-    LOG_DEBUG("out_pos %d", out_pos_);
     if (out_pos_ == 0) {
       LOG_DEBUG("still not respone, add write event again, fd %d", fd_);
       AddWriteEvent(epoller);
       return 0;
     }
-    int ret = web_svr_write(fd_, out_buffer_, out_pos_);
-    if (ret != out_pos_) {
+ 
+    ret = web_svr_write(fd_, out_buffer_, out_pos_);
+    if (ret != static_cast<int>(out_pos_)) {
       LOG_WARN("write num less than expected num, ret %d, expected %d", ret, 
         out_pos_);
     }
+
     LOG_DEBUG("write fd bytes stream, fd %d, write num %d, errno %d", fd_, ret, 
       errno);
     out_pos_ = 0;
   }
+
   AddReadEvent(epoller);
 
   return 0;

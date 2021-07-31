@@ -10,8 +10,8 @@
 
 #include <common.h>
 
-#define CHANNAL_IN_BUFF_SIZE    8192
-#define CHANNAL_OUT_BUFF_SIZE   8192
+#define CHANNAL_IN_BUFF_SIZE    4096
+#define CHANNAL_OUT_BUFF_SIZE   4096
 
 class Channal : public std::enable_shared_from_this<Channal> {
  public:
@@ -29,7 +29,7 @@ class Channal : public std::enable_shared_from_this<Channal> {
 
   const int fd_;
   Server *server_;
-  int in_pos_, out_pos_;
+  unsigned int in_pos_, out_pos_;
   char in_buffer_[CHANNAL_IN_BUFF_SIZE];
   char out_buffer_[CHANNAL_OUT_BUFF_SIZE];
 

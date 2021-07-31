@@ -12,6 +12,7 @@
 Connector *Connector::CreateConnector(int port,Epoller *epoller,
     int listen_cnt) {
   static Connector *tmp = nullptr;
+
   assert(port > 0 && port < 65536);
   assert(epoller != nullptr);
 
@@ -29,7 +30,6 @@ int Connector::Connect(Epoller *epoller) {
   int len;
   bool boolret;
   int ret;
-  int keepalive = 1;
 
   memset(&addr, 0, sizeof(addr));
   for (; ;) {
@@ -48,15 +48,7 @@ int Connector::Connect(Epoller *epoller) {
       close(fd);
       continue;
     }
-#if 0
-    ret = setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, static_cast<void *>(&keepalive), 
-      sizeof(keepalive));
-    if (!ret) {
-      LOG_ERROR("set fd %d option keepalive failed", fd);
-      close(fd);
-      continue;
-    }
-#endif
+
     std::shared_ptr<Channal> tmp(new Channal(fd, server_));
     if (!tmp.get()) {
       LOG_ERROR("new channal failed, fd %d", fd);
@@ -71,12 +63,14 @@ int Connector::Connect(Epoller *epoller) {
       epoller_->DelFd(fd);
       continue;
     }
+
     server_->InsertChannal(std::make_pair(fd, tmp));
 
     LOG_DEBUG("create channal success, fd %d", fd);
   }
 
   LOG_DEBUG("finish connectting, exit from loop");
+
   return 0;
 }
 
@@ -98,7 +92,7 @@ Connector::Connector(int port, Epoller *epoller, int listen_cnt)
 
   ret = setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, static_cast<void *>(&reuseaddr), 
     sizeof(reuseaddr));
-  LOG_DEBUG("setsockopt ret %d, errno %d", ret, errno);
+  LOG_DEBUG("fd %d setsockopt ret %d, errno %d", fd_, ret, errno);
   assert(ret == 0);
 
   memset(&addr, 0, sizeof(addr));
@@ -107,11 +101,11 @@ Connector::Connector(int port, Epoller *epoller, int listen_cnt)
   addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
   ret = bind(fd_, reinterpret_cast<struct sockaddr *>(&addr), sizeof(addr));
-  LOG_DEBUG("bind ret %d, errno %d", ret, errno);
+  LOG_DEBUG("fd %d bind ret %d, errno %d", fd_, ret, errno);
   assert(ret == 0);
 
   ret = listen(fd_, listen_cnt_);
-  LOG_DEBUG("listen ret %d, errno %d", ret, errno);
+  LOG_DEBUG("fd %d listen ret %d, errno %d", fd_, ret, errno);
   assert(ret == 0);
 }
 

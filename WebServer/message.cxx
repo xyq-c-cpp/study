@@ -25,7 +25,6 @@ static const char *way_int2str[] = {
   "NONE"
 };
 
-/* the program is running at the dir of bin */
 #define INDEX_HTML_FILE_PATH   "../resource/index.html"
 
 std::unordered_map<std::string, std::string> file_type;
@@ -58,7 +57,7 @@ Message::Message(std::string src_msg)
   : src_msg_(std::move(src_msg)),
     ver_(HTTP_VER_1_0), 
     pos_(0),
-    way_(HTTP_WAY_NONE){
+    way_(HTTP_WAY_NONE) {
 
 }
 
@@ -86,39 +85,49 @@ Message::Message(Message &&another)
   : src_msg_(std::move(another.src_msg_)),
     ver_(another.ver_),
     pos_(another.pos_),
+    way_(another.way_),
     header_(std::move(another.header_)),
-    body_(std::move(another.body_)),
-    way_(another.way_) {
+    body_(std::move(another.body_)) {
     Reset();
+}
+
+Message::~Message() {
+  LOG_DEBUG("release http message, way %s, ver %s, path %s", 
+    way_int2str[way_], ver_int2str[ver_], path_.c_str());
 }
 
 void Message::Reset(void) {
   if (!src_msg_.empty()) {
     src_msg_.clear();
   }
+
   ver_ = HTTP_VER_1_0;
   pos_ = 0;
+
   if (!header_.empty()) {
     header_.clear();
   }
+
   if (!body_.empty()) {
     body_.clear();
   }
+
   way_ = HTTP_WAY_NONE;
 }
 
 int Message::ParseLine(void) {
-  unsigned int pre_pos = 0, cur_pos = pos_, tmp_pos1;
+  unsigned int cur_pos = pos_, tmp_pos1;
 
-  LOG_DEBUG("parse http line, src_msg size %d, pos %d", 
+  LOG_DEBUG("begin parse http line, src_msg size %d, pos %d", 
     src_msg_.size(), pos_);
+
   tmp_pos1 = src_msg_.find_first_of(" ", cur_pos);
   if (tmp_pos1 == std::string::npos) {
     LOG_ERROR("cannot find the http line ' '");
     return -1;
   }
+
   way_ = http_way_str2enum(src_msg_.substr(cur_pos, tmp_pos1 - cur_pos));
-  pre_pos = cur_pos;
   cur_pos = tmp_pos1 + 1;
 
   tmp_pos1 = src_msg_.find_first_of(" ", cur_pos);
@@ -129,7 +138,6 @@ int Message::ParseLine(void) {
 
   path_ = src_msg_.substr(cur_pos, tmp_pos1 - cur_pos);
   
-  pre_pos = cur_pos;
   cur_pos = tmp_pos1 + 1;
 
   tmp_pos1 = src_msg_.find_first_of("\r", cur_pos);
@@ -137,6 +145,7 @@ int Message::ParseLine(void) {
     LOG_ERROR("No find htpp line end");
     return -1;
   }
+
   ver_ = http_ver_str2enum(src_msg_.substr(cur_pos, tmp_pos1 - cur_pos));
   pos_ = tmp_pos1 + 2;
 
@@ -147,7 +156,8 @@ int Message::ParseHeader() {
   unsigned int tmp1, tmp2;
   std::string key, val;
 
-  LOG_DEBUG("parse http header, pos %d", pos_);
+  LOG_DEBUG("begin parse http header, pos %d", pos_);
+
   while (true) {
     tmp1 = src_msg_.find_first_of("\r", pos_);
     if (tmp1 != std::string::npos) {
@@ -197,25 +207,26 @@ int Message::ProcMessage(std::shared_ptr<Channal> channal) {
 int Message::MessageRsp(std::shared_ptr<Channal> channal) {
   char buff[WEB_SVR_BUFF_SIZE_2048] = {0};
   #define TIMEOUT_TIME 5
-  std::string path = INDEX_HTML_FILE_PATH;
-  int pos;
   std::string file_type;
   struct stat st;
-  int ret;
+  int ret, fd;
+  char *tmp;
+  const char *path = INDEX_HTML_FILE_PATH;
 
-  LOG_DEBUG("construct http respone");
+  LOG_DEBUG("construct http respone...");
+
   sprintf(buff, "%s %d %s\r\n", ver_int2str[ver_], 200, "OK");
 
   if (header_.find("Connection") != header_.end() &&
-      header_["Connection"] == "keep-alive") {
+      !strcmp(header_["Connection"].c_str(), "keep-alive")) {
     sprintf(buff, "%sConnection: keep-alive\r\n", buff);
     sprintf(buff, "%sKeep-Alive: timeout=%d\r\n", buff, TIMEOUT_TIME);
   }
 
   file_type = FileType::GetFileType("default").c_str();
 
-  if (stat(path.c_str(), &st) < 0) {
-    LOG_ERROR("file %s not exist, exit", path.c_str());
+  if (stat(path, &st) < 0) {
+    LOG_ERROR("Index html file %s not exist, exit", path);
     return -1;
   }
 
@@ -231,8 +242,13 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
     return -1;
   }
 
-  int fd = open(path.c_str(), O_RDONLY, 0);
-  char *tmp = static_cast<char *>(mmap(NULL, st.st_size, PROT_READ,
+  fd = open(path, O_RDONLY, 0);
+  if (fd < 0) {
+    LOG_ERROR("open resource file %s failed", path);
+    return -1;
+  }
+
+  tmp = static_cast<char *>(mmap(NULL, st.st_size, PROT_READ,
     MAP_PRIVATE, fd, 0));
   close(fd);
 
@@ -242,6 +258,7 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
     munmap(tmp, st.st_size);
     return -1;
   }
+
   munmap(tmp, st.st_size);
 
   return 0;
@@ -266,8 +283,10 @@ int Message::AnalyseMsg() {
 
   LOG_DEBUG("prase http message finish, http ver %s, way %s, path_ %s\n", \
     ver_int2str[ver_], way_int2str[way_], path_.c_str());
+
   for (auto& i : header_) {
-    LOG_DEBUG("http header, key %s, val %s", i.first.c_str(), i.second.c_str());
+    LOG_DEBUG("http header, key %s, val %s", i.first.c_str(), 
+      i.second.c_str());
   }
 
   return 0;

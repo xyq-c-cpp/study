@@ -33,3 +33,4 @@ class FileType
 };
 
 #endif /* _FILE_TYPE_H_ */
+

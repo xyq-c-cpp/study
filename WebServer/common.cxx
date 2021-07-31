@@ -22,7 +22,8 @@ bool web_svr_set_fd_no_block(int fd) {
     LOG_ERROR("fcntl set failed, fd %d", fd);
     return false;
   }
-  LOG_DEBUG("fcntl fd %d success", fd);
+
+  LOG_DEBUG("fcntl fd %d no-block success", fd);
 
   return true;
 }

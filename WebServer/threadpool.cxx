@@ -8,7 +8,7 @@
  * note: restructure with C++11 and code specification.
  */
 
-#include "threadpool.h"
+#include <threadpool.h>
 #include <sys/syscall.h>
 
 ThreadPool *ThreadPool::CreatePool(int thread_nr) {
@@ -22,16 +22,14 @@ ThreadPool *ThreadPool::CreatePool(int thread_nr) {
   return tmp;
 }
 
-void ThreadPool::InsertTask(void_arg_task callback) {
-  LOG_DEBUG("insert task.. ");
-
+void ThreadPool::InsertTask(Task callback) {
   std::unique_lock<std::mutex> local_lock(lock_);
 
   task_queue_.emplace(std::move(callback));
 
   condition_variable_.notify_one();
 
-  LOG_DEBUG("queue size %d", task_queue_.size());
+  LOG_DEBUG("Insert task, current task size %d", task_queue_.size());
 
   return;
 }
@@ -40,13 +38,13 @@ ThreadPool::ThreadPool(int thread_nr)
     : thread_nr_(thread_nr),
       running_(true),
       work_thread_(std::vector<std::thread>(0)),
-      task_queue_(std::queue<void_arg_task>()){
+      task_queue_(std::queue<Task>()){
   assert(thread_nr_ > 0);
 
 }
 
 ThreadPool::~ThreadPool() {
-  LOG_DEBUG("thread pool exit, ");
+  LOG_DEBUG("thread pool exit");
 
   running_.store(false);
   condition_variable_.notify_all();
@@ -66,12 +64,12 @@ void ThreadPool::Init(void) {
 }
 
 void ThreadPool::Work() {
-  void_arg_task task;
   int ret;
 
   LOG_DEBUG("begin work, current thread id %d", syscall(SYS_gettid));
 
   while (running_) {
+    Task task;
     {
       std::unique_lock<std::mutex> lock(lock_);
       condition_variable_.wait(lock, 
@@ -86,7 +84,8 @@ void ThreadPool::Work() {
       }
       
       if (task_queue_.empty()) {
-        LOG_DEBUG("thread %d spurious wakeup, the task is empty, continue", syscall(SYS_gettid));
+        LOG_DEBUG("thread %d spurious wakeup, the task is empty", 
+          syscall(SYS_gettid));
         continue;
       }
       
@@ -99,5 +98,7 @@ void ThreadPool::Work() {
   }
 
   LOG_DEBUG("end work, current thread id %d", syscall(SYS_gettid));
+
+  return;
 }
 

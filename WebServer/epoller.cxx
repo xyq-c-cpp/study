@@ -52,10 +52,12 @@ int Epoller::AddReadEvent(int fd, EventCb callback, int event) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
       EventCb())));
+
     return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
     fd_event_[fd] = event;
     event_callbck_[fd].SetReadCallback(std::move(callback));
+ 
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 }
@@ -65,10 +67,12 @@ int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
       EventCb())));
+
     return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
     fd_event_[fd] = event;
     event_callbck_[fd].SetWriteCallback(std::move(callback));
+
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 }
@@ -76,14 +80,17 @@ int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
 int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int event) {
   if (fd_event_.find(fd) == fd_event_.end()) {
     LOG_DEBUG("The first time to add read-write event, fd %d", fd);
+
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(read_cb), 
       std::move(write_cb))));
+
     return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
     fd_event_[fd] = event;
     event_callbck_[fd].SetReadCallback(std::move(read_cb));
     event_callbck_[fd].SetWriteCallback(std::move(write_cb));
+ 
     return EpollCtl(EPOLL_CTL_MOD, fd, event, NULL);
   }
 }
@@ -91,29 +98,33 @@ int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int ev
 void Epoller::EpollWait(int timeout) {
   int ret;
   int callback_ret;
-  unsigned int event;
 
   ret = epoll_wait(fd_, &event_arr_[0], static_cast<int>(event_num_), timeout);
   if (ret <= 0) {
-    LOG_WARN("epoll_wait ret <= 0, maybe invalid events");
+    LOG_WARN("epoll_wait ret <= 0, No events to process...");
     return;
   }
 
-  LOG_DEBUG("epoll_wait ---> ret %d", ret);
+  LOG_DEBUG("epoll_wait -------------> ret %d", ret);
+
   for (int i = 0; i < ret; ++i) {
     LOG_DEBUG("process fd %d, event %d, i %d", event_arr_[i].data.fd, 
       event_arr_[i].events, i);
+
     if (event_arr_[i].events & EPOLLIN) {
       callback_ret = event_callbck_[event_arr_[i].data.fd].RunReadCallback();
+
       LOG_DEBUG("fd read callbck ret %d, fd %d, event %d", callback_ret, \
         event_arr_[i].data.fd, event_arr_[i].events);
     } else if (event_arr_[i].events & EPOLLOUT) {
       callback_ret = event_callbck_[event_arr_[i].data.fd].RunWriteCallback();
+ 
       LOG_DEBUG("fd write callbck ret %d, fd %d, event %d", callback_ret, \
         event_arr_[i].data.fd, event_arr_[i].events);
     } else {
       LOG_DEBUG("No expected event %d, fd %d, close it", event_arr_[i].events, \
         event_arr_[i].data.fd);
+
       DelFd(event_arr_[i].data.fd);
       server_->EraseChannal(event_arr_[i].data.fd);
       (void)close(event_arr_[i].data.fd);
