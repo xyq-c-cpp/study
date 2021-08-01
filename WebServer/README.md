@@ -21,8 +21,11 @@ Linux终端下将当前工作目录切换至项目目录的build目录，然后�
 `make`  
 即可生成server程序；  
 
-清除编译输出重新生成，可以执行  
+清除所有编译输出，可以执行  
 `make clean`  
+  
+如果CMakeList.txt有更新，请删除掉build目录下的所有文件后重新生成makefile，即执行  
+`cmake ..`  
   
 编译结束后，会在bin目录生成server程序，赋予其执行权即可执行  
 `chmod 777 ../bin/server`  
