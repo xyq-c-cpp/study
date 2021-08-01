@@ -38,9 +38,10 @@ Server::Server(int port, int thread_nr, int listen_cnt)
 }
 
 void Server::Init(void) {
+  int ret£»
+
   pool_->Init();
-  
-  int ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
+  ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
     connector_, epoller_), EPOLLIN | EPOLLET);
   assert(ret == 0);
 

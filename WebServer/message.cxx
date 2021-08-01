@@ -11,6 +11,8 @@
 #include <message.h>
 #include <filetype.h>
 
+#define INDEX_HTML_FILE_PATH   "../resource/index.html"
+
 static const char *ver_int2str[] = {
   "HTTP/1.0",
   "HTTP/1.1",
@@ -24,8 +26,6 @@ static const char *way_int2str[] = {
   "HEAD",
   "NONE"
 };
-
-#define INDEX_HTML_FILE_PATH   "../resource/index.html"
 
 std::unordered_map<std::string, std::string> file_type;
 

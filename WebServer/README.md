@@ -1,11 +1,35 @@
-# my-github
-This is my github repository for learning and exercising, there are something I had done.
 
-# the program of webserver 
-This is a program of web server to practice something that i had got in the fouth year of collage.
-The program used non-blocking IO, IO multiplexing, and the threadpool methon to work on Linux as one webserver that just
-supports the methon of GET. So, the other methon of HTTP did not make sure. The program can be tested by browing a URL http://192.168.101.22:8080/?/index.html on brower, if you have interests. And the ip address is one of your computer, the port is that you have been set.
+#介绍
+&emsp;&emsp;该http服务器编写于2020年2月19日，重构于2021年7月18日；未重构前的版本，在大四春招时写的，代码比较随心，没有标准不规范；  
+2021年7月18日重构时，是笔者正准备辞掉毕业后的第一份工作为接下来的找工作而准备的，这次的代码算是比较标准规范的，笔者所在的公司有着  
+比较严格编码规范标准。
+&emsp;&emsp;关于2021年07月18日用C++11重构整个项目的过程作一个简单的介绍；  
+&emsp;&emsp;就笔者重构完整个项目的心得来说，从零开始写一个项目比重构一个已有的项目简单得多；重构的过程中，主要做了几个方面的事情；  
+1、首先，思考项目的设计模型，思考需要哪些类，思考类的作用；2、根据1中的想法编写一个简要的设计文档，规划整个http服务端的流程，用草  
+稿纸画出具体的流程视图，最终确认整个服务端的重构设计方案，明确所有类的作用，并将这些编写成一份简要的设计文档；3、根据2中的设计文档  
+开始具体编码工作，编码工作结束后进行调试测试；4、整理项目文档，整理项目代码，进行项目总结，最终归档入库（上github）；
+&emsp;&emsp;重构后的项目，其实更像是一个网络库，实现http的get功能只是作为网络库的一次实践；
 
-# what I got after this program
-Yeah, I had got some things after working for this program about a week. but, what is that. I could't say what is it exactly.
-In all, the time of working for this program was actual, and I would benefit a lot from it.
+#目的
+&emsp;&emsp;笔者知识的实践，对C++学习的升华，为找工作的准备，分享的意义；
+
+#编译
+当前工作目录切换至项目目录的build目录，然后执行  
+`cmake ..`  
+执行后会配置生成makefile，再执行  
+`make`  
+即可生成server程序；  
+  清除编译输入重新生成，可以执行  
+`make clean`  
+  
+编译结束后，会在bin目录生成server程序，赋予其执行权即可执行  
+`chmod 777 ../bin/server`  
+  
+以笔者为例，笔者电脑上运行server程序的虚拟机地址192.168.31.212为例，在笔者电脑上打开浏览器输入  
+192.168.31.212:8888即可发起请求获取index.html，浏览器加载呈现；  
+  
+#总结
+&emsp;&emsp;其实，重构完整个项目之后，是有一定的收获；但，总感觉还是少了点什么...  
+  
+#尾语
+&emsp;&emsp;愿我们能保持一颗持续学习的心，加以实践，锤炼技术；

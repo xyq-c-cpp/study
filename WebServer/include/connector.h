@@ -1,6 +1,6 @@
 /*
  * author: 657023321@qq.com
- * date: 2020-02-19
+ * date: 2021-07-18
  * function: the class of action entity of socket connecting
  */
 

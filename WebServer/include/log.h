@@ -2,7 +2,8 @@
  * author: 657023321@qq.com
  * date: 2021-07-19
  * function: the defination of log class, use as a single class to record message.
- * note: restructure with C++11 and code specification. This file is added as the new feature.
+ * note: restructure with C++11 and code specification. This file is added as the 
+ *       new feature.
  */
 
 #ifndef _LOG_H_

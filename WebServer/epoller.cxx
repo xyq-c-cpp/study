@@ -1,6 +1,6 @@
 /*
  * author: 657023321@qq.com
- * date: 2020-02-19
+ * date: 2021-07-18
  * function: the class of epoller, wraping epoll
  */
 
@@ -128,7 +128,6 @@ void Epoller::EpollWait(int timeout) {
       DelFd(event_arr_[i].data.fd);
       server_->EraseChannal(event_arr_[i].data.fd);
       (void)close(event_arr_[i].data.fd);
-      continue;
     }
   }
 }

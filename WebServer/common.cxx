@@ -11,7 +11,9 @@
 #include <common.h>
 
 bool web_svr_set_fd_no_block(int fd) {
-  int flag = fcntl(fd, F_GETFL, 0);
+  int flag;
+
+  flag = fcntl(fd, F_GETFL, 0);
   if (flag == -1) {
     LOG_ERROR("fcntl get failed, fd %d", fd);
     return false;
@@ -46,6 +48,7 @@ int web_svr_read(int fd, char *buf, int len) {
     } else if (now_read == 0) {
       break;
     }
+
     sum += now_read;
     sizetoread -= now_read;
   }

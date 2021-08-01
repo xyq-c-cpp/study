@@ -1,6 +1,6 @@
 /*
  * author: 657023321@qq.com
- * date: 2020-02-19
+ * date: 2021-07-18
  * function: the class of socket channal entity, contain the action of read-write 
  *           events
  */
@@ -51,7 +51,7 @@ int Channal::ReadEventProc(Epoller *epoller) {
     return -1;
   }
 
-  LOG_DEBUG("read msg, size %d, fd %d", read_nr, fd_);
+  LOG_DEBUG("read message, size %d, fd %d", read_nr, fd_);
 
   std::shared_ptr<Message> msg(new Message(std::string(in_buffer_)));
   if (!msg.get()) {
