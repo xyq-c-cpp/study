@@ -15,7 +15,7 @@
 
 #define WEB_SVR_BUFF_SIZE_64  64
 
-class TimeSpace{
+class TimeSpace {
  public:
   TimeSpace() = default;
   TimeSpace(struct timeval *time);

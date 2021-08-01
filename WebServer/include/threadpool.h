@@ -13,8 +13,7 @@
 
 #include <common.h>
 
-class ThreadPool
-{
+class ThreadPool {
  public:
   static ThreadPool *CreatePool(int thread_nr);
   void InsertTask(Task callback);

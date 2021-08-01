@@ -16,8 +16,7 @@
 /*
  * the single class of getting type of files.
  */
-class FileType
-{
+class FileType {
  public:
   FileType(const FileType& another) = delete;
   FileType& operator =(const FileType& another) = delete;

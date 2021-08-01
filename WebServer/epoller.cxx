@@ -77,7 +77,8 @@ int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
   }
 }
 
-int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, int event) {
+int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, 
+      int event) {
   if (fd_event_.find(fd) == fd_event_.end()) {
     LOG_DEBUG("The first time to add read-write event, fd %d", fd);
 
