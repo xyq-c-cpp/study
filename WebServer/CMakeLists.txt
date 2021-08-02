@@ -1,5 +1,7 @@
 #https://www.cnblogs.com/jiqin/p/7275545.html
 
+#https://github.com/chinaran/color-compile
+
 PROJECT(server)
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
