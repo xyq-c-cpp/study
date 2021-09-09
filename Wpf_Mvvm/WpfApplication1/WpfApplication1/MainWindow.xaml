@@ -1,0 +1,100 @@
+﻿<!--
+
+    xmlns 简称xml namespace命名空间声明
+    
+    xmlns:local="clr-namespace:WpfApplication1" 表示声明命名空间WpfApplication1，下面控件可以通过local前缀
+        来访问WpfApplication1命名空间的东西；
+    
+    xmlns:input="clr-namespace:System.Windows.Input;assembly=PresentationCore" 
+        这里的assembly=PresentationCore  PresentationCore表示System.Windows.Input命名空间的项目名称 ；
+        命名空间的项目名称可以通过VS的对象浏览器看到；
+    
+    注意DataContext的定义，后续控件的相关绑定是通过该数据上下文来进行调用的
+        【新手的我因为没有定义这个，导致后续用到的Command绑定一直没有效果，同事帮忙看下了，是没有定义这个导致的】
+    
+    引用框架MvvmLight，有一些比较现成的东西，比较方便；
+    
+    mvvmlight框架安装：
+        1、右键解决方案，选择【管理解决方案的NuGet程序包】，然后在搜索栏搜索mvvm，选择MvvmLight，点击安装；
+        2、安装完成后，可以正常引用mvvmlight中的命名空间，但是编译时会出错，会提示命名空间Practice不存在，
+            可将报错的那一行命名空间引入替换成 using CommonServiceLocator;  重新编译，即可通过；
+    
+    C#中 
+        class demo {
+            public string name;
+            public int id {get; set; }
+        }
+        上述类内的name是字段，而id是属性，虽然他们都有公告的访问权限，但是字段与属性是有区别的；
+    
+    -->
+    
+    <Window x:Class="WpfApplication1.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WpfApplication1"
+        xmlns:input="clr-namespace:System.Windows.Input;assembly=PresentationCore"
+        xmlns:s="clr-namespace:System;assembly=mscorlib"
+        xmlns:vm="clr-namespace:WpfApplication1.ViewModel"
+        Name="mainWindow"
+        DataContext="{Binding ViewModel,ElementName=mainWindow}"
+        mc:Ignorable="d"
+        Title="Test" Height="350" Width="525">
+        
+    <Grid>
+        <DockPanel LastChildFill="True">
+            <!--StackPanel 堆栈布局，以水平或垂直方向排列控件-->
+            <StackPanel Orientation="Horizontal">
+                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
+                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left" FocusManager.FocusedElement="{Binding ElementName=combox1}"
+                        >
+
+                        <ComboBox  Name="combox1" Width="100" IsEditable="True" input:InputMethod.IsInputMethodEnabled="False" Margin="10"
+                               Text="{Binding combobox_text,Mode=TwoWay}"/>
+
+                        <TextBox Name="TextBox1" Width="100" input:InputMethod.IsInputMethodEnabled="False" Margin="10"></TextBox>
+
+                        <TextBlock Name="TextBlock1" Width="100" Text="HI!Cli_Cmd" Margin="10"></TextBlock>
+
+                        <Button Name="Button1" Width="100" Height="30" Command="{Binding cmd}" 
+                            CommandParameter="{Binding Content,ElementName=Button1}"
+                            Content="hello,mvvm" Margin="10"/>
+
+                        <Button Width="100" Height="30" Margin="10" Command="{Binding btn_clk}"></Button>
+                    </StackPanel>
+
+                    <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
+                        <ComboBox Name="combox2" Width="100" IsEditable="True" InputMethod.IsInputMethodEnabled="False" Margin="10"></ComboBox>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel VerticalAlignment="Top" HorizontalAlignment="Center" Orientation="Horizontal">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <!--定义两个行-->
+                            <RowDefinition Height="30"></RowDefinition>
+                            <RowDefinition Height="300"></RowDefinition>
+                        </Grid.RowDefinitions>
+                        <StackPanel Orientation="Horizontal" Grid.Row="0">
+                            <Label Content="表格测试"></Label>
+                            <!--margin="左,上,右,下"-->
+                            <TextBox Width="120" Margin="10,5,0,5"></TextBox>
+                        </StackPanel>
+                        <ListView Grid.Row="1" ItemsSource="{Binding GridViewSourve}">
+                            <ListView.View>
+                                <GridView>
+                                    <GridViewColumn Header="name" Width="80" DisplayMemberBinding="{Binding name}"></GridViewColumn>
+                                    <GridViewColumn Header="id" Width="80" DisplayMemberBinding="{Binding id}"></GridViewColumn>
+                                    <GridViewColumn Header="age" Width="80" DisplayMemberBinding="{Binding age}"></GridViewColumn>
+                                    <GridViewColumn Header="tel" Width="80" DisplayMemberBinding="{Binding tel}"></GridViewColumn>
+                                    <GridViewColumn Header="address" Width="80" DisplayMemberBinding="{Binding address}"></GridViewColumn>
+                                </GridView>
+                            </ListView.View>
+                        </ListView>
+                    </Grid>
+                </StackPanel>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</Window>
