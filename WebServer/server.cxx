@@ -38,7 +38,7 @@ Server::Server(int port, int thread_nr, int listen_cnt)
 }
 
 void Server::Init(void) {
-  int ret£»
+  int ret;
 
   pool_->Init();
   ret = epoller_->AddReadEvent(connector_->Fd(), std::bind(&Connector::Connect, 
@@ -52,16 +52,12 @@ void Server::Init(void) {
   timer_queue_->AddTimer(std::bind(&Log::UpdateTime, g_logger), 1, 0, true);
 }
 
-void Server::InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal) {
-  channal_map_.insert(std::move(channal));
-}
-
-void Server::EraseChannal(int fd) {
-  channal_map_.erase(fd);
-}
-
 void Server::TaskInQueue(Task callback) {
   pool_->InsertTask(std::move(callback));
+}
+
+Epoller *Server::GetEpoller() {
+    return epoller_;
 }
 
 void Server::Start(void) {

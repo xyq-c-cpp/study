@@ -10,8 +10,10 @@
 
 #include <message.h>
 #include <filetype.h>
+#include <server.h>
+#include <epoller.h>
 
-#define INDEX_HTML_FILE_PATH   "../resource/index.html"
+#define INDEX_HTML_FILE_PATH   "../Resource/index.html"
 
 static const char *ver_int2str[] = {
   "HTTP/1.0",
@@ -94,6 +96,7 @@ Message::Message(Message &&another)
 Message::~Message() {
   LOG_DEBUG("release http message, way %s, ver %s, path %s", 
     way_int2str[way_], ver_int2str[ver_], path_.c_str());
+  header_.clear();
 }
 
 void Message::Reset(void) {
@@ -186,25 +189,32 @@ int Message::ParseHeader() {
 
 int Message::ProcMessage(std::shared_ptr<Channal> channal) {
   int ret;
+  bool is_close = false;
 
   LOG_DEBUG("get http message:\n%s", src_msg_.c_str());
   
   ret = AnalyseMsg();
   if (ret) {
     LOG_ERROR("analyse http message failed, ret %d", ret);
+    channal->GetServer()->GetEpoller()->DelFd(channal->Fd());
     return -1;
   }
 
-  ret = MessageRsp(channal);
+  ret = MessageRsp(channal, is_close);
   if (ret) {
     LOG_ERROR("the message rsp failed, ret %d", ret);
+    channal->GetServer()->GetEpoller()->DelFd(channal->Fd());
     return -1;
+  }
+  
+  if (is_close) {
+      channal->GetServer()->GetEpoller()->DelFd(channal->Fd());
   }
 
   return 0;
 }
 
-int Message::MessageRsp(std::shared_ptr<Channal> channal) {
+int Message::MessageRsp(std::shared_ptr<Channal> channal, bool &is_close) {
   char buff[WEB_SVR_BUFF_SIZE_2048] = {0};
   #define TIMEOUT_TIME 5
   std::string file_type;
@@ -221,6 +231,10 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
       !strcmp(header_["Connection"].c_str(), "keep-alive")) {
     sprintf(buff, "%sConnection: keep-alive\r\n", buff);
     sprintf(buff, "%sKeep-Alive: timeout=%d\r\n", buff, TIMEOUT_TIME);
+    is_close = false;
+  } else {
+    sprintf(buff, "%sConnection: close\r\n", buff);
+    is_close = true;
   }
 
   file_type = FileType::GetFileType("default").c_str();
@@ -244,7 +258,7 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal) {
 
   fd = open(path, O_RDONLY, 0);
   if (fd < 0) {
-    LOG_ERROR("open resource file %s failed", path);
+    LOG_ERROR("open resource file %s failed, errno %d", path, errno);
     return -1;
   }
 

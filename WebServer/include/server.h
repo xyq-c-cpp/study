@@ -21,9 +21,8 @@ class Server {
   static Server *CreateServer(unsigned int port, int thread_nr, int listen_cnt);
   void Start(void);
   void Init(void);
-  void InsertChannal(std::pair<int, std::shared_ptr<Channal> > channal);
-  void EraseChannal(int fd);
   void TaskInQueue(Task callback);
+  Epoller *GetEpoller();
 
  private:
   Server(int port, int thread_nr, int listen_cnt);
@@ -34,7 +33,6 @@ class Server {
   ThreadPool *pool_;
   TimerQueue *timer_queue_;
   std::shared_ptr<Connector> connector_;
-  std::unordered_map<int, std::shared_ptr<Channal> > channal_map_;
 };
 
 #endif /* _SERVER_H_ */

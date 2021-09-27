@@ -11,16 +11,19 @@
 #include <message.h>
 #include <epoller.h>
 
+#define MAX_RETRY_TIME      3
+
 Channal::Channal(int fd, Server *server)
   : fd_(fd),
     server_(server),
     in_pos_(0),
-    out_pos_(0) {
+    out_pos_(0),
+    retry_time_(0) {
   LOG_DEBUG("init channal, fd %d", fd);
 }
 
 Channal::~Channal() {
-  LOG_DEBUG("close fd %d", fd_);
+  LOG_DEBUG("channal destroy, close fd %d", fd_);
   close(fd_);
 }
 
@@ -47,6 +50,11 @@ int Channal::ReadEventProc(Epoller *epoller) {
   if (read_nr <= 0) {
     LOG_ERROR("invalid read event, fd %d, read_nr %d, errno %d", fd_, 
       read_nr, errno);
+    ++retry_time_;
+    if (retry_time_ >= MAX_RETRY_TIME) {
+        epoller->DelFd(fd_);
+        return -1;
+    }
     AddReadEvent(epoller);
     return -1;
   }
@@ -56,15 +64,23 @@ int Channal::ReadEventProc(Epoller *epoller) {
   std::shared_ptr<Message> msg(new Message(std::string(in_buffer_)));
   if (!msg.get()) {
     LOG_ERROR("new message failed, channal fd %d", fd_);
+    ++retry_time_;
+    if (retry_time_ >= MAX_RETRY_TIME) {
+        epoller->DelFd(fd_);
+        return -1;
+    }
     AddReadEvent(epoller);
     return -1;
   }
 
   server_->TaskInQueue(std::bind(&Message::ProcMessage, msg, 
     GetSharedPtrFromThis()));
-  AddWriteEvent(epoller);
 
   return 0;
+}
+
+Server *Channal::GetServer() {
+    return server_;
 }
 
 int Channal::WriteEventProc(Epoller *epoller) {
@@ -96,6 +112,7 @@ int Channal::WriteEventProc(Epoller *epoller) {
 }
 
 int Channal::WriteRsp(const char *buff, int len) {
+#if 0
   if (out_pos_ + len > sizeof(out_buffer_)) {
     LOG_ERROR("out buffer is full, abort it");
     return -1;
@@ -106,7 +123,14 @@ int Channal::WriteRsp(const char *buff, int len) {
     memcpy(&out_buffer_[out_pos_], buff, len);
     out_pos_ += len;
   }
-  
+#endif
+    int ret = web_svr_write(fd_, const_cast<char *>(buff), len);
+    if (ret != len) {
+      LOG_ERROR("write num less than expected num, ret %d, expected %d, errno %d",
+        ret, len, errno);
+      return -1;
+    }
+
   return 0;
 }
 

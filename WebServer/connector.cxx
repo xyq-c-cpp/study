@@ -27,7 +27,7 @@ Connector *Connector::CreateConnector(int port,Epoller *epoller,
 int Connector::Connect(Epoller *epoller) {
   int fd;
   struct sockaddr_in addr;
-  int len;
+  int len = 1;
   bool boolret;
   int ret;
 
@@ -39,9 +39,16 @@ int Connector::Connect(Epoller *epoller) {
       LOG_ERROR("accept fd failed, fd val %d, errno %d, exit accept", fd, errno);
       break;
     }
-
+    
     LOG_DEBUG("accept success, fd %d, addr %s", fd, inet_ntoa(addr.sin_addr));
 
+    int num = epoller_->GetFdNum();
+    if (num >= 1020) {
+      LOG_ERROR("current process open fd has benn max num,  num %d", num);
+      close(fd);
+      continue;
+    }
+    
     boolret = web_svr_set_fd_no_block(fd);
     if (!boolret) {
       LOG_ERROR("set fd %d no block failed, close it", fd);
@@ -63,8 +70,6 @@ int Connector::Connect(Epoller *epoller) {
       epoller_->DelFd(fd);
       continue;
     }
-
-    server_->InsertChannal(std::make_pair(fd, tmp));
 
     LOG_DEBUG("create channal success, fd %d", fd);
   }

@@ -77,7 +77,7 @@ const char *Log::GetLogLevelStr(log_level_t level) {
 
 void Log::Logging(const char *file, unsigned int line, const char *func, 
     log_level_t level, const char *fmt, ...) {
-  static char tmp[WEB_SVR_BUFF_SIZE_256] = {0};
+  char tmp[WEB_SVR_BUFF_SIZE_256] = {0};
   va_list va;
   int num;
 

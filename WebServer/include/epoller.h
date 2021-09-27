@@ -9,7 +9,7 @@
 
 #include <common.h>
 
- class Callback {
+class Callback {
  public:
   Callback() = default;
   ~Callback() = default;
@@ -64,6 +64,9 @@ class Epoller {
     server_ = server;
     assert(server_ != nullptr);
   }
+  int GetFdNum() {
+      return fd_num_;
+  }
   int GetEpollFd(void) {return fd_;}
 
   ~Epoller();
@@ -75,6 +78,7 @@ class Epoller {
   const unsigned int event_num_;
   const int fd_;
   Server *server_;
+  int fd_num_;
   std::vector<struct epoll_event> event_arr_;
   std::unordered_map<int, Callback> event_callbck_;
   std::unordered_map<int, unsigned int> fd_event_;

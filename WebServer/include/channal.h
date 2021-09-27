@@ -22,6 +22,7 @@ class Channal : public std::enable_shared_from_this<Channal> {
   int WriteRsp(const char *buff, int len);
   int Fd(void);
   std::shared_ptr<Channal> GetSharedPtrFromThis(void);
+  Server *GetServer();
 
  private:
   void AddReadEvent(Epoller *epoller);
@@ -30,6 +31,7 @@ class Channal : public std::enable_shared_from_this<Channal> {
   const int fd_;
   Server *server_;
   unsigned int in_pos_, out_pos_;
+  int retry_time_;
   char in_buffer_[CHANNAL_IN_BUFF_SIZE];
   char out_buffer_[CHANNAL_OUT_BUFF_SIZE];
 

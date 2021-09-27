@@ -89,11 +89,12 @@ void ThreadPool::Work() {
         continue;
       }
       
+      LOG_DEBUG("get one task success, current task size %d", task_queue_.size());
       task = std::move(task_queue_.front());
       task_queue_.pop();
     }
-  
-    ret = task();
+    if (task)
+      ret = task();
     LOG_DEBUG("called users' callback, ret %d", ret);
   }
 

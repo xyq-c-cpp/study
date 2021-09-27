@@ -10,8 +10,14 @@
 
 #include <common.h>
 #include <server.h>
+#include <signal.h>
 
 int main(int argc, char *argv[]) {
+  struct sigaction act;
+  memset(&act, 0, sizeof(act));
+  act.sa_handler = SIG_IGN;
+  (void)sigaction(SIGPIPE, &act, nullptr);
+  
   Server *server = Server::CreateServer(8888, 8, 2000);
 
   server->Init();

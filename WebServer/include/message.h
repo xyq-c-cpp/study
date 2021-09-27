@@ -50,7 +50,7 @@ class Message : public std::enable_shared_from_this<Message> {
   int ParseLine(void);
   int ParseHeader(void);
   int AnalyseMsg(void);
-  int MessageRsp(std::shared_ptr<Channal> channal);
+  int MessageRsp(std::shared_ptr<Channal> channal, bool &is_close);
 
   std::string src_msg_;
   http_ver_t ver_;
