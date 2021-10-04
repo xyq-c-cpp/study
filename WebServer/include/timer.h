@@ -30,10 +30,9 @@ class TimeSpace {
   struct timeval *GetTimePtr(void);
   const char *GetTimeStr(void);
   void SetTime(struct timeval *time);
-
- private:
   void Time2Str(void);
 
+ private:
   struct timeval time_;
   char time_str_[WEB_SVR_BUFF_SIZE_64];
 };

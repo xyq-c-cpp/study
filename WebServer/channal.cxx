@@ -23,8 +23,12 @@ Channal::Channal(int fd, Server *server)
 }
 
 Channal::~Channal() {
-  LOG_DEBUG("channal destroy, close fd %d", fd_);
-  close(fd_);
+  int ret;
+  do {
+    ret = close(fd_);
+    LOG_DEBUG("channal destroy, close fd %d, ret %d errno %d %s",
+      fd_, ret, ret ? errno : 0, strerror(ret == 0 ? 0 : errno));
+  } while (ret != 0);
 }
 
 std::shared_ptr<Channal> Channal::GetSharedPtrFromThis(void) {

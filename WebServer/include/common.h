@@ -32,6 +32,7 @@
 #include <thread>
 #include <iostream>
 #include <assert.h>
+#include <signal.h>
 
 #include <config.h>
 
@@ -67,6 +68,8 @@ typedef std::function<int(void)> TimerCb;
 bool web_svr_set_fd_no_block(int fd);
 int web_svr_read(int fd, char *buf, int len);
 int web_svr_write(int fd, char *buf, int len);
+void setSocketNoLinger(int fd);
+void handleSigpipe();
 
 #endif
 

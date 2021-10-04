@@ -9,6 +9,9 @@
 #include <server.h>
 #include <channal.h>
 
+/* ulimit -n 65535 */
+#define MAX_OPEN_FD_NUM   (65535 - 6)
+
 Connector *Connector::CreateConnector(int port,Epoller *epoller,
     int listen_cnt) {
   static Connector *tmp = nullptr;
@@ -36,14 +39,15 @@ int Connector::Connect(Epoller *epoller) {
     fd = accept(fd_, reinterpret_cast<struct sockaddr *>(&addr), 
       reinterpret_cast<socklen_t *>(&len));
     if (fd <= 0) {
-      LOG_ERROR("accept fd failed, fd val %d, errno %d, exit accept", fd, errno);
+      LOG_ERROR("accept fd failed, ret %d, errno %s, exit accept", 
+        fd, strerror(errno));
       break;
     }
     
     LOG_DEBUG("accept success, fd %d, addr %s", fd, inet_ntoa(addr.sin_addr));
 
     int num = epoller_->GetFdNum();
-    if (num >= 1020) {
+    if (num >= MAX_OPEN_FD_NUM) {
       LOG_ERROR("current process open fd has benn max num,  num %d", num);
       close(fd);
       continue;
@@ -55,6 +59,8 @@ int Connector::Connect(Epoller *epoller) {
       close(fd);
       continue;
     }
+
+    setSocketNoLinger(fd);
 
     std::shared_ptr<Channal> tmp(new Channal(fd, server_));
     if (!tmp.get()) {

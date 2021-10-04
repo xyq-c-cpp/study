@@ -80,3 +80,17 @@ int web_svr_write(int fd, char *buf, int len) {
   return sum;
 }
 
+void setSocketNoLinger(int fd) {
+  struct linger linger_;
+  linger_.l_onoff = 1;
+  linger_.l_linger = 30;
+  setsockopt(fd, SOL_SOCKET, SO_LINGER, (const char*)&linger_,
+    sizeof(linger_));
+}
+
+void handleSigpipe() {
+  struct sigaction act;
+  memset(&act, 0, sizeof(act));
+  act.sa_handler = SIG_IGN;
+  (void)sigaction(SIGPIPE, &act, nullptr);
+}

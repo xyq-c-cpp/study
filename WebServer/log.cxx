@@ -112,12 +112,13 @@ int Log::UpdateTime(void) {
   if (tmp.size() > 0) {
     LOG_DEBUG("the logger has %d bytes stream to write to log file", tmp.size());
  
-    (void)web_svr_write(fileno(fd_), const_cast<char*>(buff_.c_str()), 
+    (void)web_svr_write(fileno(fd_), const_cast<char *>(buff_.c_str()), 
       tmp.size());
     fflush(fd_);
   }
   
   (void)gettimeofday(time_->GetTimePtr(), nullptr);
+  time_->Time2Str();
 
   return 0;
 }

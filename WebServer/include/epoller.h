@@ -65,7 +65,7 @@ class Epoller {
     assert(server_ != nullptr);
   }
   int GetFdNum() {
-      return fd_num_;
+    return event_callbck_.size();
   }
   int GetEpollFd(void) {return fd_;}
 
@@ -78,10 +78,10 @@ class Epoller {
   const unsigned int event_num_;
   const int fd_;
   Server *server_;
-  int fd_num_;
   std::vector<struct epoll_event> event_arr_;
   std::unordered_map<int, Callback> event_callbck_;
   std::unordered_map<int, unsigned int> fd_event_;
+  std::mutex lock_;
 };
 
 #endif

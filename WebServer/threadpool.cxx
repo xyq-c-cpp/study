@@ -77,7 +77,9 @@ void ThreadPool::Work() {
           return !this->task_queue_.empty() || !this->running_.load();
         }
       );
-        
+      
+#if 0  
+      //前面条件变量的使用方式可以避免虚假唤醒的情况，因此不再需要这两句处理。
       if (!running_.load()) {
         LOG_DEBUG("this thread would exit, ppid %d", syscall(SYS_gettid));
         return;
@@ -88,7 +90,8 @@ void ThreadPool::Work() {
           syscall(SYS_gettid));
         continue;
       }
-      
+#endif 
+
       LOG_DEBUG("get one task success, current task size %d", task_queue_.size());
       task = std::move(task_queue_.front());
       task_queue_.pop();
@@ -97,9 +100,7 @@ void ThreadPool::Work() {
       ret = task();
     LOG_DEBUG("called users' callback, ret %d", ret);
   }
-
   LOG_DEBUG("end work, current thread id %d", syscall(SYS_gettid));
-
   return;
 }
 

@@ -215,50 +215,53 @@ int Message::ProcMessage(std::shared_ptr<Channal> channal) {
 }
 
 int Message::MessageRsp(std::shared_ptr<Channal> channal, bool &is_close) {
-  char buff[WEB_SVR_BUFF_SIZE_2048] = {0};
   #define TIMEOUT_TIME 5
   std::string file_type;
   struct stat st;
   int ret, fd;
   char *tmp;
   const char *path = INDEX_HTML_FILE_PATH;
+  std::string buff;
 
   LOG_DEBUG("construct http respone...");
 
-  sprintf(buff, "%s %d %s\r\n", ver_int2str[ver_], 200, "OK");
+  buff += ver_int2str[ver_] + std::string(" 200 OK\r\n");
 
   if (header_.find("Connection") != header_.end() &&
       !strcmp(header_["Connection"].c_str(), "keep-alive")) {
-    sprintf(buff, "%sConnection: keep-alive\r\n", buff);
-    sprintf(buff, "%sKeep-Alive: timeout=%d\r\n", buff, TIMEOUT_TIME);
+    buff += "Connection: keep-alive\r\n";
+    buff += "Keep-Alive: timeout=" + std::to_string(TIMEOUT_TIME) + "\r\n";
     is_close = false;
   } else {
-    sprintf(buff, "%sConnection: close\r\n", buff);
+    buff += "Connection: close\r\n";
     is_close = true;
   }
 
   file_type = FileType::GetFileType("default").c_str();
 
   if (stat(path, &st) < 0) {
-    LOG_ERROR("Index html file %s not exist, exit", path);
+    LOG_ERROR("Index html file %s not exist, %s", 
+      path, strerror(errno));
     return -1;
   }
 
-  sprintf(buff, "%sContent-type: %s\r\n", buff, file_type.c_str());
-  sprintf(buff, "%sContent-length: %d\r\n", buff, static_cast<int>(st.st_size));
-  sprintf(buff, "%s\r\n", buff);
-  
-  LOG_DEBUG("rsp header: \n%s", buff);
+  buff += "Content-type: " + file_type + "\r\n";
+  buff += "Content-length: " + std::to_string(st.st_size) + "\r\n";
+  buff += "\r\n";
 
-  ret = channal->WriteRsp(buff, strlen(buff));
+  LOG_DEBUG("rsp header: \n%s", buff.c_str());
+
+  ret = channal->WriteRsp(buff.c_str(), buff.length());
   if (ret) {
-    LOG_ERROR("write rsp header failed, ret %d", ret);
+    LOG_ERROR("write rsp header failed, ret %d, %s",
+      ret, strerror(errno));
     return -1;
   }
 
   fd = open(path, O_RDONLY, 0);
   if (fd < 0) {
-    LOG_ERROR("open resource file %s failed, errno %d", path, errno);
+    LOG_ERROR("open resource file %s failed, %s", 
+      path, strerror(errno));
     return -1;
   }
 
@@ -268,7 +271,8 @@ int Message::MessageRsp(std::shared_ptr<Channal> channal, bool &is_close) {
 
   ret = channal->WriteRsp(tmp, st.st_size);
   if (ret) {
-    LOG_ERROR("write rsp body failed, ret %d", ret);
+    LOG_ERROR("write rsp body failed, ret %d, %s",
+      ret, strerror(errno));
     munmap(tmp, st.st_size);
     return -1;
   }

@@ -11,15 +11,17 @@
 TimeSpace::TimeSpace(struct timeval *time) {
   time_.tv_sec = time->tv_sec;
   time_.tv_usec = time->tv_usec;
+  Time2Str();
 }
 
 TimeSpace::TimeSpace(const TimeSpace &another) {
   time_ = another.time_;
+  Time2Str();
 }
 
 TimeSpace& TimeSpace::operator = (const TimeSpace &another) {
   time_ = another.time_;
-
+  Time2Str();
   return *this;
 }
 
@@ -38,6 +40,7 @@ bool TimeSpace::operator < (const TimeSpace &another) const {
 void TimeSpace::SetTime(struct timeval * time) {
   time_.tv_sec = time->tv_sec;
   time_.tv_usec = time->tv_usec;
+  Time2Str();
 }
 
 struct timeval *TimeSpace::GetTimePtr(void) {
@@ -50,7 +53,7 @@ void TimeSpace::Reset(void) {
 }
 
 void TimeSpace::Time2Str(void) {
-  memset(time_str_, 0, sizeof(time_str_));
+  memset(time_str_, '\0', sizeof(time_str_));
   strftime(time_str_, sizeof(time_str_) - 1, "%Y-%m-%d %H:%M:%S ", 
     localtime(&time_.tv_sec));
   strncat(time_str_, std::to_string(time_.tv_usec / 1000).c_str(), 
@@ -58,8 +61,6 @@ void TimeSpace::Time2Str(void) {
 }
 
 const char *TimeSpace::GetTimeStr(void) {
-  Time2Str();
-
   return const_cast<const char *>(time_str_);
 }
 

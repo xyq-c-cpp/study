@@ -11,7 +11,6 @@ Epoller::Epoller(unsigned int event_num)
     : event_num_(event_num), 
       fd_(epoll_create(event_num_)),
       server_(nullptr),
-      fd_num_(0),
       event_arr_(std::vector<struct epoll_event>(event_num_)) {
   assert(fd_ >= 0);
 }
@@ -30,11 +29,13 @@ Epoller *Epoller::CreateEpoller(unsigned int event_num) {
 void Epoller::DelFd(int fd) {
   unsigned int event = EPOLLIN | EPOLLOUT;
   EpollCtl(EPOLL_CTL_DEL, fd, event, NULL);
-  if (fd_event_.find(fd) != fd_event_.end())
-    fd_event_.erase(fd);
-  if (event_callbck_.find(fd) != event_callbck_.end())
-    event_callbck_.erase(fd);
-  fd_num_--;
+  {
+    std::unique_lock<std::mutex> lock(lock_);
+    if (fd_event_.find(fd) != fd_event_.end())
+      fd_event_.erase(fd);
+    if (event_callbck_.find(fd) != event_callbck_.end())
+      event_callbck_.erase(fd);
+  }
 }
 
 Epoller::~Epoller() {
@@ -52,11 +53,11 @@ int Epoller::EpollCtl(int op, int fd, int event, void *arg) {
 }
 
 int Epoller::AddReadEvent(int fd, EventCb callback, int event) {
+  std::unique_lock<std::mutex> lock(lock_);
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
       EventCb())));
-    fd_num_++;
     return EpollCtl(EPOLL_CTL_ADD, fd, event, NULL);
   } else {
     fd_event_[fd] = event;
@@ -67,6 +68,7 @@ int Epoller::AddReadEvent(int fd, EventCb callback, int event) {
 }
 
 int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
+  std::unique_lock<std::mutex> lock(lock_);
   if (fd_event_.find(fd) == fd_event_.end()) {
     fd_event_.insert(std::make_pair(fd, event));
     event_callbck_.insert(std::make_pair(fd, Callback(std::move(callback), 
@@ -83,6 +85,7 @@ int Epoller::AddWriteEvent(int fd, EventCb callback, int event) {
 
 int Epoller::AddReadWriteEvent(int fd, EventCb read_cb, EventCb write_cb, 
       int event) {
+  std::unique_lock<std::mutex> lock(lock_);
   if (fd_event_.find(fd) == fd_event_.end()) {
     LOG_DEBUG("The first time to add read-write event, fd %d", fd);
 
@@ -116,28 +119,28 @@ void Epoller::EpollWait(int timeout) {
     LOG_DEBUG("process fd %d, event %d, i %d", event_arr_[i].data.fd, 
       event_arr_[i].events, i);
 
-    if (event_arr_[i].events & EPOLLIN) {
-      auto tmp = event_callbck_.find(event_arr_[i].data.fd);
-      if (tmp == event_callbck_.end()) {
-          LOG_ERROR("the callback has been deleted, fd %d", event_arr_[i].data.fd);
-          continue;
+    {
+      Callback cb;
+      if (event_arr_[i].events & EPOLLIN) {
+        {
+          std::unique_lock<std::mutex> lock(lock_);
+          auto tmp = event_callbck_.find(event_arr_[i].data.fd);
+          if (tmp == event_callbck_.end()) {
+            LOG_ERROR("the callback has been deleted, fd %d", event_arr_[i].data.fd);
+            continue;
+          }
+          cb = tmp->second;
+        }
+        callback_ret = cb.RunReadCallback();
+
+        LOG_DEBUG("fd read callbck ret %d, fd %d, event %d", callback_ret, \
+          event_arr_[i].data.fd, event_arr_[i].events);
       }
-
-      Callback cb = tmp->second;
-      callback_ret = cb.RunReadCallback();
-
-      LOG_DEBUG("fd read callbck ret %d, fd %d, event %d", callback_ret, \
-        event_arr_[i].data.fd, event_arr_[i].events);
-    } else if (event_arr_[i].events & EPOLLOUT) {
-      Callback cb = event_callbck_[event_arr_[i].data.fd];
-      callback_ret = cb.RunWriteCallback();
- 
-      LOG_DEBUG("fd write callbck ret %d, fd %d, event %d", callback_ret, \
-        event_arr_[i].data.fd, event_arr_[i].events);
-    } else {
-      LOG_DEBUG("No expected event %d, fd %d, close it", event_arr_[i].events, \
-        event_arr_[i].data.fd);
-      DelFd(event_arr_[i].data.fd);
+      else {
+        LOG_DEBUG("No expected event %d, fd %d, close it", event_arr_[i].events, \
+          event_arr_[i].data.fd);
+        DelFd(event_arr_[i].data.fd);
+      }
     }
   }
 }
