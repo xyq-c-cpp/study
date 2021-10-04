@@ -47,7 +47,7 @@
 
 # 改进之处
 &emsp;&emsp;项目的网络模型是异步IO + 一个主线程，多个线程的线程池。但是线程间竞争很大，主线程与线程池竞争获取任务队列的使用权，
-线程池间的线程竞争处理任务，主线程与线程池的线程一起竞争一个公共变量。并且，主线程负责接受所有新的连接，以及已建立连接的读事件IO读取。  
+线程池间的线程竞争处理任务，主线程与线程池的线程一起竞争一个公共变量。并且，主线程负责接受所有新的连接，以及已建立连接的读事件IO读取。
 压力测试发现，处理瓶颈在主线程，线程池的线程大多时候都是空闲的。并且即使瓶颈在主线程，主线程的cpu核也不能打满，最高也只能40~50%。  
 &emsp;&emsp;改进之处，将网络模型修改为one thread one loop，每个线程一个事件循环池，即每个线程一个epoll。主线程只负责将新连接分发以及
 处理本线程的事件。具体IO事件由文件描述符分发到的事件池线程处理。另外对于事件请求加入超时机制，每个请求超时之后关闭连接。  
@@ -66,4 +66,3 @@
 # 附录
 &emsp;&emsp;[readme在线编辑器](http://mahua.jser.me/)  
 &emsp;&emsp;[readme语法实例](https://www.cnblogs.com/S-volcano/p/9454194.html#:~:text=readme%20%E8%AF%AD%E6%B3%95.%20README.%20%E8%AF%A5%E6%96%87%E4%BB%B6%E7%94%A8%E6%9D%A5%E6%B5%8B%E8%AF%95%E5%92%8C%E5%B1%95%E7%A4%BA%E4%B9%A6%E5%86%99README%E7%9A%84%E5%90%84%E7%A7%8Dmarkdown%E8%AF%AD%E6%B3%95%E3%80%82.,GitHub%E7%9A%84markdown%E8%AF%AD%E6%B3%95%E5%9C%A8%E6%A0%87%E5%87%86%E7%9A%84markdown%E8%AF%AD%E6%B3%95%E5%9F%BA%E7%A1%80%E4%B8%8A%E5%81%9A%E4%BA%86%E6%89%A9%E5%85%85%EF%BC%8C%E7%A7%B0%E4%B9%8B%E4%B8%BA%60GitHub%20Flavored%20Markdown%60%E3%80%82.%20%E7%AE%80%E7%A7%B0%60GFM%60%EF%BC%8CGFM%E5%9C%A8GitHub%E4%B8%8A%E6%9C%89%E5%B9%BF%E6%B3%9B%E5%BA%94%E7%94%A8%EF%BC%8C%E9%99%A4%E4%BA%86README%E6%96%87%E4%BB%B6%E5%A4%96%EF%BC%8Cissues%E5%92%8Cwiki%E5%9D%87%E6%94%AF%E6%8C%81markdown%E8%AF%AD%E6%B3%95%E3%80%82.)
-&emsp;&emsp;压力测试工具：WenBench
