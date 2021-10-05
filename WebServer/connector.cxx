@@ -10,7 +10,7 @@
 #include <channal.h>
 
 /* ulimit -n 65535 */
-#define MAX_OPEN_FD_NUM   (65535 - 6)
+#define MAX_OPEN_FD_NUM   (1024 * 7)
 
 Connector *Connector::CreateConnector(int port,Epoller *epoller,
     int listen_cnt) {

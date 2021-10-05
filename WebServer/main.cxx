@@ -14,7 +14,8 @@
 int main(int argc, char *argv[]) {
   handleSigpipe();
 
-  Server *server = Server::CreateServer(8888, 8, 2000);
+  int port = 8888, threadCount = 3, listenCount = 65536;
+  Server *server = Server::CreateServer(port, threadCount, listenCount);
   server->Init();
   server->Start();
 
