@@ -7,7 +7,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
-#undef DEBUG
+#define DEBUG
+#define TEST
 
 #endif
 

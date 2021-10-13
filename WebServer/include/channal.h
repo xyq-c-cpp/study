@@ -8,34 +8,39 @@
 #ifndef _CHANNAL_H_
 #define _CHANNAL_H_
 
-#include <common.h>
+#include <Common.h>
 
-#define CHANNAL_IN_BUFF_SIZE    4096
-#define CHANNAL_OUT_BUFF_SIZE   4096
-
-class Channal : public std::enable_shared_from_this<Channal> {
+class Channal {
  public:
-  Channal(int fd, Server *server);
+  explicit Channal(int fd, std::shared_ptr<Epoller> epoller);
   ~Channal();
-  int ReadEventProc(Epoller *epoller);
-  int WriteEventProc(Epoller *epoller);
-  int WriteRsp(const char *buff, int len);
-  int Fd(void);
-  std::shared_ptr<Channal> GetSharedPtrFromThis(void);
-  Server *GetServer();
+  int handleEvent();
+  void setWriteCb(EventCb&& cb);
+  void setReadCb(EventCb&& cb);
+  void setErrorCb(EventCb&& cb);
+  void setEvent(uint32_t event);
+  void setMsg(std::shared_ptr<Message> msg);
+  void setErase(bool isErase);
+  void setIsUpdateEvent(bool isUpdate);
+  void updateEventAndLastEvent(uint32_t event);
+  int& getFd();
+  uint32_t& getEvent();
+  void setTimer(std::shared_ptr<Timer> timer);
+  void delTimer();
+  int handleClose();
 
  private:
-  void AddReadEvent(Epoller *epoller);
-  void AddWriteEvent(Epoller *epoller);
-
-  const int fd_;
-  Server *server_;
-  unsigned int in_pos_, out_pos_;
-  int retry_time_;
-  char in_buffer_[CHANNAL_IN_BUFF_SIZE];
-  char out_buffer_[CHANNAL_OUT_BUFF_SIZE];
-
-  std::mutex lock_;
+  int fd_;
+  std::weak_ptr<Epoller> epoller_;
+  bool isErase_;
+  uint32_t event_;
+  bool isUpdate_;
+  uint32_t lastEvent_;
+  std::weak_ptr<Timer> timer_;
+  EventCb writeCb_;
+  EventCb readCb_;
+  EventCb errorCb_;
+  std::shared_ptr<Message> msg_;
 };
 
 #endif

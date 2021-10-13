@@ -11,10 +11,11 @@
 #ifndef  _MESSAGE_H_
 #define  _MESSAGE_H_
 
-#include <common.h>
+#include <Common.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
-#include <channal.h>
+#include <Channal.h>
+#include <Buffer.h>
 
 #define HTTP_WAY_GET_STR    "GET"
 #define HTTP_WAY_POST_STR   "POST"
@@ -34,32 +35,36 @@ typedef enum {
   HTTP_VER_NONE
 }http_ver_t;
 
-class Message : public std::enable_shared_from_this<Message> {
+class Message {
  public:
-  explicit Message(std::string src_mag);
-  Message(const Message &another);
-  Message& operator = (const Message &another);
-  Message(Message &&another);
+  explicit Message(std::shared_ptr<Channal> holder);
   ~Message();
-  
-  int ProcMessage(std::shared_ptr<Channal> channal);
+  /*Message(const Message &another);
+  Message& operator = (const Message &another);
+  Message(Message &&another);*/
 
-  void Reset();
+  int handleReadEvent();
+  int handleWriteEvent();
+  int handleErrorEvnet();
 
  private:
+  int ProcMessage(int fd);
+  void Reset();
   int ParseLine(void);
   int ParseHeader(void);
   int AnalyseMsg(void);
-  int MessageRsp(std::shared_ptr<Channal> channal, bool &is_close);
+  int MessageRsp(int fd, bool &isClose);
 
-  std::string src_msg_;
   http_ver_t ver_;
   unsigned int pos_;
   http_way_t way_;
+  int retry_time_;
+  std::weak_ptr<Channal> holder_;
   std::string path_;
-
-  std::unordered_map<std::string, std::string> header_;
+  Buffer<512> src_msg_;
   std::string body_;
+  std::map<std::string, std::string> header_;
+  std::string rsp_;
 };
 
 #endif /* _MESSAGE_H_ */

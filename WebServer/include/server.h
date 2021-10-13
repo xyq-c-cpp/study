@@ -11,28 +11,26 @@
 #ifndef  _SERVER_H_
 #define  _SERVER_H_
 
-#include <common.h>
+#include <Common.h>
 
 /*
  * a single class of the server
  */
 class Server {
- public:
-  static Server *CreateServer(unsigned int port, int thread_nr, int listen_cnt);
-  void Start(void);
-  void Init(void);
-  void TaskInQueue(Task callback);
-  Epoller *GetEpoller();
-
- private:
-  Server(int port, int thread_nr, int listen_cnt);
+public:
+  explicit Server(int port, std::shared_ptr<EventLoop> mainLoop, int threadNum = 3);
   ~Server() = default;
+  void start();
+
+private:
+  int newListenFd();
+  int acceptConnection();
+  int handleError();
 
   const int port_;
-  Epoller *epoller_;
-  ThreadPool *pool_;
-  TimerQueue *timer_queue_;
-  std::shared_ptr<Connector> connector_;
+  std::shared_ptr<EventLoop> mainLoop_;
+  std::shared_ptr<EventLoopThreadPool> pool_;
+  std::shared_ptr<Channal> acceptor_;
 };
 
 #endif /* _SERVER_H_ */

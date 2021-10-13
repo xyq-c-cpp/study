@@ -19,7 +19,6 @@
 #include <sys/time.h>
 #include <unistd.h>
 #include <errno.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <vector>
 #include <queue>
@@ -33,6 +32,9 @@
 #include <iostream>
 #include <assert.h>
 #include <signal.h>
+#include <stdint.h>
+#include <map>
+#include <list>
 
 #include <config.h>
 
@@ -45,18 +47,23 @@
 #define WEB_SVR_BUFF_SIZE_2048    2048
 #define WEB_SVR_BUFF_SIZE_4096    4096
 
-class TimeSpace;
+#define MAX_FD_NUM                1048575
+#define MAX_RETRY_TIME            3
+#define DEFAULT_TIMEOUT_MS        (2 * 1000)
+#define KEEP_ALIVE_TIMEOUT_S      (5 * 60)
+#define KEEP_ALIVE_TIMEOUT_MS     (KEEP_ALIVE_TIMEOUT_S * 1000)
+
 class Timer;
-class TimerQueue;
+class TimerManager;
 class Message;
 class Channal;
 class Server;
-class ThreadPool;
 class Epoller;
-class Connector;
-class Log;
+class EventLoop;
+class EventLoopThread;
+class EventLoopThreadPool;
 
-#include <log.h>
+#include <Log.h>
 
 #define EPOLL_WAIT_BLOCK          -1
 #define EPOLL_WAIT_RET_IMMEDIATE  0
@@ -69,6 +76,7 @@ bool web_svr_set_fd_no_block(int fd);
 int web_svr_read(int fd, char *buf, int len);
 int web_svr_write(int fd, char *buf, int len);
 void setSocketNoLinger(int fd);
+void setSocketNodelay(int fd);
 void handleSigpipe();
 
 #endif

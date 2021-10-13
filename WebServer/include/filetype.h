@@ -11,7 +11,7 @@
 #ifndef _FILE_TYPE_H_
 #define _FILE_TYPE_H_
 
-#include <common.h>
+#include <Common.h>
 
 /*
  * the single class of getting type of files.
@@ -20,13 +20,12 @@ class FileType {
  public:
   FileType(const FileType& another) = delete;
   FileType& operator =(const FileType& another) = delete;
-
   static std::string GetFileType(const std::string &type);
 
  private:
   FileType() = default;
   ~FileType() = default;
-  
+
   static std::unordered_map<std::string ,std::string> mime_;
   static std::mutex lock_;
 };
