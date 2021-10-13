@@ -26,11 +26,13 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <pthread.h>
 /* values */
 volatile int timerexpired=0;
-int speed=0;
-int failed=0;
-int bytes=0;
+unsigned long speed=0;
+unsigned long failed=0;
+unsigned long bytes=0;
+int exitChild = 0;
 
 /* globals */
 int http10=1; /* 0 - http/0.9, 1 - http/1.0, 2 - http/1.1 */
@@ -42,6 +44,7 @@ int http10=1; /* 0 - http/0.9, 1 - http/1.0, 2 - http/1.1 */
 #define PROGRAM_VERSION "1.5"
 int method=METHOD_GET;
 int clients=1;
+int allClients = 0;
 int force=0;
 int force_reload=0;
 int proxyport=80;
@@ -84,6 +87,24 @@ static void alarm_handler(int signal)
 {
     timerexpired=1;
 }	
+
+static void mainAlarmHandler(int signal) {
+    printf("\nSpeed=%lu pages/min, %lu bytes/sec.\nRequests: %lu susceed, %lu failed.\n",
+        (unsigned long)((speed+failed)/(benchtime/60.0f)),
+        (unsigned long)(bytes/(float)benchtime),
+        speed,
+        failed);
+    exit(0);
+}
+
+void *ThreadFun(void *arg)
+{
+    while (1) {
+        printf("i am ThreadFun, sleep %d second", benchtime + 5);
+        sleep(benchtime + 5);
+    }
+    return NULL;
+}
 
 static void usage(void)
 {
@@ -403,13 +424,33 @@ static int bench(void)
             return 3;
         }
         /* fprintf(stderr,"Child - %d %d\n",speed,failed); */
-        fprintf(f,"%d %d %d\n",speed,failed,bytes);
+        fprintf(f,"%d %d %d\n-1 -1 -1\n",speed,failed,bytes);
+        sleep(1);
         fclose(f);
 
         return 0;
     } 
     else
     {
+        /* pthread_t myThread1;
+        // 创建 myThread1 线程
+        int res = pthread_create(&myThread1, NULL, ThreadFun, NULL);
+        if (res != 0) {
+            printf("线程创建失败");
+            return 0;
+        }
+        sleep(1); */
+
+        struct sigaction sa;
+
+        /* setup alarm signal handler */
+        sa.sa_handler=mainAlarmHandler;
+        sa.sa_flags=0;
+        if(sigaction(SIGALRM,&sa,NULL))
+            exit(3);
+        
+        alarm(benchtime + 5);
+
         f=fdopen(mypipe[0],"r");
         if(f==NULL) 
         {
@@ -431,20 +472,27 @@ static int bench(void)
                 fprintf(stderr,"Some of our childrens died.\n");
                 break;
             }
-            
+            if (i == -1 && j == -1 && k == -1) {
+                --clients;
+                if (clients == 0)
+                    break;
+                continue;
+            }
+
             speed+=i;
             failed+=j;
             bytes+=k;
+            printf("get child process, speed %lu failed %lu bytes %lu", speed, failed, bytes);
         
             /* fprintf(stderr,"*Knock* %d %d read=%d\n",speed,failed,pid); */
-            if(--clients==0) break;
+            //if(==0) break;
         }
     
         fclose(f);
 
-        printf("\nSpeed=%d pages/min, %d bytes/sec.\nRequests: %d susceed, %d failed.\n",
-            (int)((speed+failed)/(benchtime/60.0f)),
-            (int)(bytes/(float)benchtime),
+        printf("\nSpeed=%lu pages/min, %lu bytes/sec.\nRequests: %lu susceed, %lu failed.\n",
+            (unsigned long)((speed+failed)/(benchtime/60.0f)),
+            (unsigned long)(bytes/(float)benchtime),
             speed,
             failed);
     }
@@ -534,7 +582,7 @@ void benchcore(const char *host,const int port,const char *req)
                 }
                 return;
             }
-            s=Socket(host,port);        
+            s=Socket(host,port);
             if(s<0) { failed++;continue;} 
             if(rlen!=write(s,req,rlen)) {failed++;close(s);continue;}
             if(http10==0) 

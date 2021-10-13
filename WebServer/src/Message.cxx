@@ -269,7 +269,6 @@ int Message::MessageRsp(int fd, bool &isClose) {
 #endif 
     return -1;
   }
-    
 
   resourcFd = open(path, O_RDONLY, 0);
   if (resourcFd < 0) {
