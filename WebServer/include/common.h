@@ -35,6 +35,7 @@
 #include <stdint.h>
 #include <map>
 #include <list>
+#include <sys/resource.h>
 
 #include <config.h>
 
@@ -78,6 +79,7 @@ int web_svr_write(int fd, char *buf, int len);
 void setSocketNoLinger(int fd);
 void setSocketNodelay(int fd);
 void handleSigpipe();
+int getMaxOpenFileNum();
 
 #endif
 

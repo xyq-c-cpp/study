@@ -7,10 +7,11 @@ ctags
 
 ## 使用：
 
-	sudo make && sudo make install PREFIX=your_path_to_webbench
+	sudo make && sudo make install PREFIX=your_path_to_webbench 或./build.sh
   
 ## 命令行选项：
-
+./webbench -t 60 -c 1000 --get -2 http://127.0.0.1:80/  
+./webbench -t 60 -c 1000 --get -2 -k http://127.0.0.1:80/  
 
 
 
@@ -24,8 +25,9 @@ ctags
 |-9     |--http09               |使用 HTTP/0.9                      |
 |-1     |--http10               |使用 HTTP/1.0 协议                 |
 |-2     |--http11               |使用 HTTP/1.1 协议                 |
+|-k     |--keep                 |Keep-Alive                         |
 |       |--get                  |使用 GET请求方法                   |
-|       |--head                 |使用 HEAD请求方法                    |
+|       |--head                 |使用 HEAD请求方法                  |
 |       |--options              |使用 OPTIONS请求方法               |
 |       |--trace                |使用 TRACE请求方法                 |
 |-?/-h  |--help                 |打印帮助信息                       |

@@ -1,6 +1,6 @@
-CFLAGS?=	-Wall -ggdb -W -O
+CFLAGS?=	-Wall -ggdb -W -O -Wunused-parameter
 CC?=		gcc
-LIBS?=
+LIBS?=-pthread
 LDFLAGS?=
 PREFIX?=	/usr/local/webbench
 VERSION=1.5

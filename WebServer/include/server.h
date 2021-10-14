@@ -31,6 +31,7 @@ private:
   std::shared_ptr<EventLoop> mainLoop_;
   std::shared_ptr<EventLoopThreadPool> pool_;
   std::shared_ptr<Channal> acceptor_;
+  int maxOpenFile_;
 };
 
 #endif /* _SERVER_H_ */

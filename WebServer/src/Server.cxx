@@ -25,6 +25,7 @@ Server::Server(int port, std::shared_ptr<EventLoop> mainLoop, int threadNum)
   acceptor_->setEvent(EPOLLIN | EPOLLET);
   acceptor_->setReadCb(std::bind(&Server::acceptConnection, this));
   acceptor_->setIsUpdateEvent(false);
+  maxOpenFile_ = getMaxOpenFileNum();
 }
 
 void Server::start() {
@@ -82,7 +83,7 @@ int Server::acceptConnection() {
       << inet_ntoa(addr.sin_addr) << std::endl;
 #endif
     //略有粗略 更好的做法是系统调用获取当前进程可打开的文件描述符数量；
-    if (fd >= MAX_FD_NUM) {
+    if (fd >= maxOpenFile_) {
 #ifdef DEBUG
       std::cout << "waring!!! the num of fd has been the most max" << std::endl;
 #endif

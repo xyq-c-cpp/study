@@ -482,7 +482,6 @@ static int bench(void)
             speed+=i;
             failed+=j;
             bytes+=k;
-            printf("get child process, speed %lu failed %lu bytes %lu", speed, failed, bytes);
         
             /* fprintf(stderr,"*Knock* %d %d read=%d\n",speed,failed,pid); */
             //if(==0) break;

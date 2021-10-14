@@ -89,3 +89,20 @@ void handleSigpipe() {
   act.sa_handler = SIG_IGN;
   (void)sigaction(SIGPIPE, &act, nullptr);
 }
+
+int getMaxOpenFileNum() {
+  struct rlimit r;
+  int ret = getrlimit(RLIMIT_NOFILE, &r);
+  if (ret != 0) {
+#ifdef DEBUG
+  std::cout << "getrlimit failed, ret " << ret
+    << " errstr " << strerror(errno) << std::endl;
+#endif
+    return 1024;
+  }
+#ifdef DEBUG
+  std::cout << "max open file " << static_cast<int>(r.rlim_max)
+    << std::endl;
+#endif
+  return static_cast<int>(r.rlim_max);
+}
