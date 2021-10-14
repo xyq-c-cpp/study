@@ -26,6 +26,7 @@
 &emsp;&emsp;笔者知识的实践，C++学习的升华，找工作的准备，分享的意义。  
 
 # 编译
+&emsp;&emsp;（上传github后，有些文件名字大小写可能被改了，编不过的话需要改正下）  
 &emsp;&emsp;Linux终端下将当前工作目录切换至项目目录的build目录，然后执行  
 &emsp;&emsp;`cmake ..` 或者 `cmake ../src`（第四版）  
 
