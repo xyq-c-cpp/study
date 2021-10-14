@@ -2,6 +2,7 @@
 
 #include <string>
 #include <config.h>
+#include <cstring>
 
 template<size_t size>
 class Buffer {
@@ -42,14 +43,11 @@ public:
     if (begin > size_) {
       return end_;
     }
-    char* tmp = buff_ + begin;
-    while (tmp < buff_ + size_) {
-      if (*tmp == t) {
-        return tmp - buff_;
-      }
-      ++tmp;
-    }
-    return end_;
+    char *ret = strchr(buff_ + begin, t);
+    if (ret != nullptr)
+      return (ret - buff_);
+    else 
+      return end_;
   }
 
   void append(char* begin, size_t len) {
