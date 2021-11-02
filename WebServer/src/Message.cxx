@@ -13,7 +13,8 @@
 #include <Server.h>
 #include <Epoller.h>
 
-#define INDEX_HTML_FILE_PATH   "../Resource/index.html"
+#define INDEX_HTML_FILE_PATH    "../Resource/index.html"
+#define WORK_DIR                "/WebServer/resource"
 
 static const char *ver_int2str[] = {
   "HTTP/1.0",
@@ -29,7 +30,7 @@ static const char *way_int2str[] = {
   "NONE"
 };
 
-std::unordered_map<std::string, std::string> file_type;
+std::unordered_map<std::string, std::string> fileType;
 
 static http_way_t http_way_str2enum(std::string way_str) {
   if (!strcmp(way_str.c_str(), HTTP_WAY_GET_STR)) {
@@ -130,7 +131,7 @@ int Message::ParseLine(void) {
   if (tmp_pos1 == src_msg_.end())
     return -1;
 
-  path_ = src_msg_.substr(cur_pos + 1, tmp_pos1 - cur_pos - 1);
+  path_ = src_msg_.substr(cur_pos, tmp_pos1 - cur_pos);
   cur_pos = tmp_pos1 + 1;
 
   tmp_pos1 = src_msg_.find('\r', cur_pos);
@@ -198,7 +199,7 @@ int Message::ProcMessage(int fd) {
 #ifdef DEBUG
     std::cout << "MessageRsp failed, ret " << ret << std::endl;
 #endif 
-    return -1;
+    return -2;
   }
 
   if (is_close)
@@ -206,9 +207,22 @@ int Message::ProcMessage(int fd) {
   return 0;
 }
 
-int Message::MessageRsp(int fd, bool &isClose) {
+int Message::MessageRsp(int fd, bool& isClose) {
+  switch (way_) {
+  case http_way_t::HTTP_WAY_GET:
+    return handleGetRequest(fd, isClose);
+  default:
+    handleErrorRsp(fd);
+#ifdef DEBUG
+    std::cout << "No support way" << std::endl;
+#endif
+    return -1;
+  }
+}
+
+int Message::handleGetRequest(int fd, bool &isClose) {
   #define TIMEOUT_TIME 5
-  std::string file_type;
+  std::string fileType;
   struct stat st;
   int ret, resourcFd;
   char *tmp;
@@ -250,14 +264,24 @@ int Message::MessageRsp(int fd, bool &isClose) {
     buff += "Connection: close\r\n";
     isClose = true;
   }
-  file_type = FileType::GetFileType("default").c_str();
-  if (stat(path, &st) < 0) {
+
+  std::string absolutePath = std::string(WORK_DIR"/index.html");
+  auto iter = path_.rfind('.');
+  if (iter == std::string::npos) {
+    fileType = FileType::GetFileType("default").c_str();
+  } else {
+    absolutePath = std::string(WORK_DIR) + path_;
+    fileType = FileType::GetFileType(path_.substr(iter).c_str());
+  }
+  if (stat(absolutePath.c_str(), &st) < 0) {
 #ifdef DEBUG
-    std::cout << "stat failed" << std::endl;
+    std::cout << "stat failed err " << strerror(errno) << std::endl;
 #endif 
+    handleErrorRsp(fd);
     return -1;
   }
-  buff += "Content-type: " + file_type + "\r\n";
+
+  buff += "Content-type: " + fileType + "\r\n";
   buff += "Content-length: " + std::to_string(st.st_size) + "\r\n";
   buff += "\r\n";
 
@@ -270,7 +294,7 @@ int Message::MessageRsp(int fd, bool &isClose) {
     return -1;
   }
 
-  resourcFd = open(path, O_RDONLY, 0);
+  resourcFd = open(absolutePath.c_str(), O_RDONLY, 0);
   if (resourcFd < 0) {
 #ifdef DEBUG
     std::cout << "open failed, errstr " << strerror(errno) << std::endl;
@@ -285,7 +309,7 @@ int Message::MessageRsp(int fd, bool &isClose) {
   ret = web_svr_write(fd, tmp, st.st_size);
   if (ret != st.st_size) {
 #ifdef DEBUG
-    std::cout << "write file " << path << " failed, errstr"
+    std::cout << "write file " << absolutePath << " failed, errstr"
       << strerror(errno) << std::endl;
 #endif
     (void)munmap(tmp, st.st_size);
@@ -294,6 +318,25 @@ int Message::MessageRsp(int fd, bool &isClose) {
   (void)munmap(tmp, st.st_size);
 #endif
   return 0;
+}
+
+void Message::handleErrorRsp(int fd) {
+  std::string body =
+    "<html><title>Not Found</title><body bgcolor=\"ffffff\">Sorry, "
+    "the server can not find the resource.<hr><em> XieYongQi"
+    "'s WebServer CentOs 8.0 Aliyun</em>\n</body></html>";
+
+  std::string header =
+    "HTTP/1.1 404 Not Found!\r\n"
+    "Content-type: text/html\r\n"
+    "Connection: close\r\n"
+    "Server: XieYongQi's WebServer CentOs 8.0 Aliyun\r\n"
+    "Content-Length: " + std::to_string(body.length()) +
+    "\r\n\r\n";
+  (void)web_svr_write(fd, const_cast<char *>(header.c_str()),
+    header.length());
+  (void)web_svr_write(fd, const_cast<char*>(body.c_str()),
+    body.length());
 }
 
 int Message::AnalyseMsg() {

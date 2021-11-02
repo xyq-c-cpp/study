@@ -54,6 +54,8 @@ class Message {
   int ParseHeader(void);
   int AnalyseMsg(void);
   int MessageRsp(int fd, bool &isClose);
+  void handleErrorRsp(int fd);
+  int handleGetRequest(int fd, bool& isClose);
 
   http_ver_t ver_;
   unsigned int pos_;
@@ -61,7 +63,7 @@ class Message {
   int retry_time_;
   std::weak_ptr<Channal> holder_;
   std::string path_;
-  Buffer<512> src_msg_;
+  Buffer<1024> src_msg_;
   std::string body_;
   std::map<std::string, std::string> header_;
   std::string rsp_;

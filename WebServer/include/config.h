@@ -8,7 +8,7 @@
 #define _CONFIG_H_
 
 #define DEBUG
-#define TEST
+#undef TEST
 
 #endif
 

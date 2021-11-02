@@ -41,7 +41,10 @@
         DataContext="{Binding ViewModel,ElementName=mainWindow}"
         mc:Ignorable="d"
         Title="Test" Height="350" Width="525">
-        
+
+    <Window.Resources>
+        <vm:YourConverter x:Key="con"></vm:YourConverter>
+    </Window.Resources>
     <Grid>
         <DockPanel LastChildFill="True">
             <!--StackPanel 堆栈布局，以水平或垂直方向排列控件-->
@@ -66,6 +69,31 @@
 
                     <StackPanel VerticalAlignment="Top" HorizontalAlignment="Left">
                         <ComboBox Name="combox2" Width="100" IsEditable="True" InputMethod.IsInputMethodEnabled="False" Margin="10"></ComboBox>
+                    </StackPanel>
+                    <StackPanel>
+                        <ComboBox ItemsSource="{Binding GridViewSourve}">
+                            <ComboBox.ItemTemplate>
+                                <DataTemplate>
+                                    <CheckBox Content="{Binding name}"
+                                              Command="{Binding ViewModel.SelectCombox, 
+                                              RelativeSource={RelativeSource AncestorType=local:MainWindow}}"
+                                              Name="self"
+                                              >
+                                        <CheckBox.Resources>
+                                            
+                                        </CheckBox.Resources>
+                                        <CheckBox.CommandParameter>
+                                            <MultiBinding  Converter="{StaticResource con}">
+                                                <MultiBinding.Bindings>
+                                                    <Binding Path="name"/>
+                                                    <Binding ElementName="self" Path="IsChecked"></Binding>
+                                                </MultiBinding.Bindings>
+                                            </MultiBinding>
+                                        </CheckBox.CommandParameter>
+                                    </CheckBox>
+                                </DataTemplate>
+                            </ComboBox.ItemTemplate>
+                        </ComboBox>
                     </StackPanel>
                 </StackPanel>
 

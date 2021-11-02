@@ -1,0 +1,10 @@
+[Unit]
+Description=this is my WebServer
+
+[Service]
+Type=simple
+ExecStart=/WebServer/start.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

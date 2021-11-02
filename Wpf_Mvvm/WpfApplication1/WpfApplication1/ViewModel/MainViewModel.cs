@@ -3,10 +3,25 @@ using GalaSoft.MvvmLight.Command;
 using System.Windows;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
-
+using System.Windows.Data;
+using System;
+using System.Globalization;
 
 namespace WpfApplication1.ViewModel
 {
+   
+    public class YourConverter : IMultiValueConverter
+    {
+        public object Convert(object[] values, Type targetType, object parameter, CultureInfo culture)
+        {
+            return values.Clone();
+        }
+        public object[] ConvertBack(object value, Type[] targetTypes, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
     public class person
     {
         public string name { get;  set; }
@@ -109,6 +124,21 @@ namespace WpfApplication1.ViewModel
                 GridViewSourve_ = value;
                 RaisePropertyChanged();
             }
+        }
+
+        private RelayCommand<object> _select;
+        public RelayCommand<object> SelectCombox
+        {
+            get
+            {
+                return _select ?? (_select = new RelayCommand<object>(selectcmd));
+            }
+        }
+
+
+        private void selectcmd(object m)
+        {
+            int a = 0;
         }
 
     }
