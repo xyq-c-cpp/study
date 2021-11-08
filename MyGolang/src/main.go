@@ -1,14 +1,17 @@
 package main
 
 import (
-	"cli/mycli"
-	"demo"
+  "cli/mycli"
+  "demo"
 )
 
 func test() {
-	demo.Main()
+  demo.Main()
 }
 
+func test2() {
+  mycli.Main()
+}
 func main() {
-	mycli.Main()
+  test()
 }
