@@ -1,33 +1,24 @@
 
 
-#include <EventLoop.h>
 #include <Epoller.h>
+#include <EventLoop.h>
 #include <Timer.h>
 #include <sstream>
 
 EventLoop::EventLoop()
-  : eventLoop_(std::make_shared<Epoller>()), 
-    isRuning_(true),
-    isHandlePending_(false) {
-  
-}
+    : eventLoop_(std::make_shared<Epoller>()), isRuning_(true),
+      isHandlePending_(false) {}
 
-std::shared_ptr<Epoller> EventLoop::getEpoll() {
-  return eventLoop_;
-}
+std::shared_ptr<Epoller> EventLoop::getEpoll() { return eventLoop_; }
 
-void EventLoop::queueInLoop(Task&& task) {
+void EventLoop::queueInLoop(Task &&task) {
   std::unique_lock<std::mutex> lock(lock_);
   pendingTask_.push(std::move(task));
 }
 
-void EventLoop::stop() {
-  isRuning_ = false;
-}
+void EventLoop::stop() { isRuning_ = false; }
 
-bool EventLoop::getIsHandlePending() {
-  return isHandlePending_;
-}
+bool EventLoop::getIsHandlePending() { return isHandlePending_; }
 
 void EventLoop::loop() {
   std::stringbuf buf;
@@ -46,11 +37,11 @@ void EventLoop::loop() {
     }
     isHandlePending_ = true;
     while (!task.empty()) {
-        Task cb = std::move(task.front());
-        task.pop();
-        int ret;
-        if (cb)
-          ret = cb();
+      Task cb = std::move(task.front());
+      task.pop();
+      int ret;
+      if (cb)
+        ret = cb();
     }
     isHandlePending_ = false;
   next:

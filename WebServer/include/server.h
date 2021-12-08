@@ -8,8 +8,8 @@
  * note: restructure with C++11 and code specification.
  */
 
-#ifndef  _SERVER_H_
-#define  _SERVER_H_
+#ifndef _SERVER_H_
+#define _SERVER_H_
 
 #include <Common.h>
 
@@ -18,7 +18,8 @@
  */
 class Server {
 public:
-  explicit Server(int port, std::shared_ptr<EventLoop> mainLoop, int threadNum = 3);
+  explicit Server(int port, std::shared_ptr<EventLoop> mainLoop,
+                  int threadNum = 3);
   ~Server() = default;
   void start();
 
@@ -35,4 +36,3 @@ private:
 };
 
 #endif /* _SERVER_H_ */
-

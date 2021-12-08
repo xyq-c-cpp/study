@@ -1,8 +1,8 @@
 /*
  * author: 657023321@qq.com
  * date: 2021-07-18
- * function: the class of socket channal entity, contain the action of read-write 
- *           events
+ * function: the class of socket channal entity, contain the action of
+ * read-write events
  */
 
 #ifndef _CHANNAL_H_
@@ -11,25 +11,25 @@
 #include <Common.h>
 
 class Channal {
- public:
+public:
   explicit Channal(int fd, std::shared_ptr<Epoller> epoller);
   ~Channal();
   int handleEvent();
-  void setWriteCb(EventCb&& cb);
-  void setReadCb(EventCb&& cb);
-  void setErrorCb(EventCb&& cb);
+  void setWriteCb(EventCb &&cb);
+  void setReadCb(EventCb &&cb);
+  void setErrorCb(EventCb &&cb);
   void setEvent(uint32_t event);
   void setMsg(std::shared_ptr<Message> msg);
   void setErase(bool isErase);
   void setIsUpdateEvent(bool isUpdate);
   void updateEventAndLastEvent(uint32_t event);
-  int& getFd();
-  uint32_t& getEvent();
+  int &getFd();
+  uint32_t &getEvent();
   void setTimer(std::shared_ptr<Timer> timer);
   void delTimer();
   int handleClose();
 
- private:
+private:
   int fd_;
   std::weak_ptr<Epoller> epoller_;
   bool isErase_;
@@ -44,4 +44,3 @@ class Channal {
 };
 
 #endif
-

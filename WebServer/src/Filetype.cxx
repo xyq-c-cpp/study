@@ -17,7 +17,7 @@ std::mutex FileType::lock_;
 std::string FileType::GetFileType(const std::string &type) {
   if (mime_.size() == 0) {
     std::lock_guard<std::mutex> lock(lock_);
-    { 
+    {
       mime_[".html"] = "text/html";
       mime_[".avi"] = "video/x-msvideo";
       mime_[".bmp"] = "image/bmp";
@@ -41,4 +41,3 @@ std::string FileType::GetFileType(const std::string &type) {
     return mime_[type];
   }
 }
-

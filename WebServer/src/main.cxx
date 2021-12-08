@@ -8,20 +8,20 @@
  * note: restructure with C++11 and code specification.
  */
 
-#include <getopt.h>
 #include <Common.h>
-#include <Server.h>
 #include <EventLoop.h>
 #include <EventLoopThread.h>
+#include <Server.h>
+#include <getopt.h>
 
 int main(int argc, char *argv[]) {
   int port = 8888, threadNum = 3;
-  const char* str = "t:p:";
+  const char *str = "t:p:";
   int opt;
 
   while ((opt = getopt(argc, argv, str)) != -1) {
     switch (opt) {
-    case 't' :
+    case 't':
       threadNum = atoi(optarg);
       break;
     case 'p':
@@ -33,12 +33,12 @@ int main(int argc, char *argv[]) {
   }
 #ifdef DEBUG
   std::cout << "mainThread tid " << std::this_thread::get_id() << std::endl;
-#endif 
+#endif
 
   handleSigpipe();
   std::shared_ptr<EventLoop> mainLoop(std::make_shared<EventLoop>());
-  std::shared_ptr<Server> server(std::make_shared<Server>(port, 
-    mainLoop, threadNum));
+  std::shared_ptr<Server> server(
+      std::make_shared<Server>(port, mainLoop, threadNum));
   server->start();
   mainLoop->loop();
 

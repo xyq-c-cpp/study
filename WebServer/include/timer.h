@@ -20,7 +20,7 @@ private:
 
 //> 3 2 1 优先级队列根在数组或者队列后面，所以优先级队列栈顶 1
 struct cmp {
-  bool operator () (std::shared_ptr<Timer>& a, std::shared_ptr<Timer> &b) {
+  bool operator()(std::shared_ptr<Timer> &a, std::shared_ptr<Timer> &b) {
     return a->getExpiredTime() > b->getExpiredTime();
   }
 };
@@ -33,6 +33,7 @@ public:
   std::shared_ptr<Timer> addTimer(std::shared_ptr<Channal> channal, int msec);
 
 private:
-  std::priority_queue<std::shared_ptr<Timer>, 
-    std::deque<std::shared_ptr<Timer>>, cmp> timerQueue_;
+  std::priority_queue<std::shared_ptr<Timer>,
+                      std::deque<std::shared_ptr<Timer>>, cmp>
+      timerQueue_;
 };

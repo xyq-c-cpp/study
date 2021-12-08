@@ -49,13 +49,13 @@ int web_svr_read(int fd, char *buf, int len) {
 
 int web_svr_write(int fd, char *buf, int len) {
   int sizetowrite = len;
-  int sum = 0 , written = 0;
+  int sum = 0, written = 0;
 
   while (sizetowrite > 0) {
     written = write(fd, buf + sum, sizetowrite);
     if (written < 0) {
       /* No block mode, we shall try again */
-      if(errno == EINTR) {
+      if (errno == EINTR) {
         continue;
       } else if (errno == EAGAIN || errno == EWOULDBLOCK) {
         return sum;
@@ -73,14 +73,14 @@ void setSocketNoLinger(int fd) {
   struct linger linger_;
   linger_.l_onoff = 1;
   linger_.l_linger = 30;
-  (void)setsockopt(fd, SOL_SOCKET, SO_LINGER, (const char*)&linger_,
-    sizeof(linger_));
+  (void)setsockopt(fd, SOL_SOCKET, SO_LINGER, (const char *)&linger_,
+                   sizeof(linger_));
 }
 
 void setSocketNodelay(int fd) {
   int enable = 1;
-  (void)setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void*)&enable,
-    sizeof(enable));
+  (void)setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, (void *)&enable,
+                   sizeof(enable));
 }
 
 void handleSigpipe() {
@@ -95,14 +95,13 @@ int getMaxOpenFileNum() {
   int ret = getrlimit(RLIMIT_NOFILE, &r);
   if (ret != 0) {
 #ifdef DEBUG
-  std::cout << "getrlimit failed, ret " << ret
-    << " errstr " << strerror(errno) << std::endl;
+    std::cout << "getrlimit failed, ret " << ret << " errstr "
+              << strerror(errno) << std::endl;
 #endif
     return 1024;
   }
 #ifdef DEBUG
-  std::cout << "max open file " << static_cast<int>(r.rlim_max)
-    << std::endl;
+  std::cout << "max open file " << static_cast<int>(r.rlim_max) << std::endl;
 #endif
   return static_cast<int>(r.rlim_max);
 }

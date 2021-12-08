@@ -4,28 +4,29 @@
  * function:
  */
 
-#include <EventLoopThread.h>
-#include <EventLoop.h>
-#include <Epoller.h>
-#include <Timer.h>
 #include <Channal.h>
-#include <sstream>
+#include <Epoller.h>
+#include <EventLoop.h>
+#include <EventLoopThread.h>
+#include <Timer.h>
 #include <pthread.h>
+#include <sstream>
 #include <sys/eventfd.h>
 
-EventLoopThread::EventLoopThread() 
-  : mainLoop_(std::make_shared<EventLoop>()),
-    thread_(std::thread(std::bind(&EventLoop::loop, mainLoop_))),
-    wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) {
+EventLoopThread::EventLoopThread()
+    : mainLoop_(std::make_shared<EventLoop>()),
+      thread_(std::thread(std::bind(&EventLoop::loop, mainLoop_))),
+      wakeupFd(eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC)) {
   assert(wakeupFd >= 0);
   std::stringbuf buf;
   std::ostream os(&buf);
   os << thread_.get_id();
-  std::shared_ptr<Channal> wakeupChannal(std::make_shared<Channal>(wakeupFd,
-    mainLoop_->getEpoll()));
+  std::shared_ptr<Channal> wakeupChannal(
+      std::make_shared<Channal>(wakeupFd, mainLoop_->getEpoll()));
   wakeupChannal->setEvent(EPOLLIN | EPOLLET);
   wakeupChannal->setIsUpdateEvent(false);
-  wakeupChannal->setReadCb(std::bind(&EventLoopThread::handleWakeupEvent, this));
+  wakeupChannal->setReadCb(
+      std::bind(&EventLoopThread::handleWakeupEvent, this));
   bool ret = mainLoop_->getEpoll()->epollAdd(wakeupChannal);
   assert(ret == true);
 }
@@ -35,7 +36,7 @@ EventLoopThread::~EventLoopThread() {
   thread_.join();
 }
 
-void EventLoopThread::runInLoop(Task&& task) {
+void EventLoopThread::runInLoop(Task &&task) {
   if (isInLoopThread()) {
     task();
   } else {
@@ -51,28 +52,22 @@ inline bool EventLoopThread::isInLoopThread() {
 
 void EventLoopThread::wakeup() {
   uint64_t tt = 1;
-  (void)web_svr_write(wakeupFd, reinterpret_cast<char*>(&tt),
-    sizeof(tt));
+  (void)web_svr_write(wakeupFd, reinterpret_cast<char *>(&tt), sizeof(tt));
 }
 
 int EventLoopThread::handleWakeupEvent() {
   uint64_t tt = 0;
-  (void)web_svr_read(wakeupFd, reinterpret_cast<char*>(&tt),
-    sizeof(tt));
+  (void)web_svr_read(wakeupFd, reinterpret_cast<char *>(&tt), sizeof(tt));
 #ifdef DEBUG
-  std::cout << "handle wakeup event, fd " << wakeupFd 
-    << " tt " << tt << std::endl;
+  std::cout << "handle wakeup event, fd " << wakeupFd << " tt " << tt
+            << std::endl;
 #endif
   return 0;
 }
 
-void EventLoopThread::start() {
-  
-}
+void EventLoopThread::start() {}
 
-std::shared_ptr<EventLoop> EventLoopThread::getEventLoop() {
-  return mainLoop_;
-}
+std::shared_ptr<EventLoop> EventLoopThread::getEventLoop() { return mainLoop_; }
 
 void EventLoopThread::setThreadName(std::string name) {
   //线程名字需要小于16个字节

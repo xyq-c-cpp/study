@@ -8,27 +8,17 @@
  * note: restructure with C++11 and code specification.
  */
 
-#include <Message.h>
-#include <Filetype.h>
-#include <Server.h>
 #include <Epoller.h>
+#include <Filetype.h>
+#include <Message.h>
+#include <Server.h>
 
-#define INDEX_HTML_FILE_PATH    "../Resource/index.html"
-#define WORK_DIR                "/WebServer/resource"
+#define INDEX_HTML_FILE_PATH "../Resource/index.html"
+#define WORK_DIR "/WebServer/resource"
 
-static const char *ver_int2str[] = {
-  "HTTP/1.0",
-  "HTTP/1.1",
-  "HTTP/2.0",
-  "NONE"
-};
+static const char *ver_int2str[] = {"HTTP/1.0", "HTTP/1.1", "HTTP/2.0", "NONE"};
 
-static const char *way_int2str[] = {
-  "GET",
-  "POST",
-  "HEAD",
-  "NONE"
-};
+static const char *way_int2str[] = {"GET", "POST", "HEAD", "NONE"};
 
 std::unordered_map<std::string, std::string> fileType;
 
@@ -51,21 +41,16 @@ static http_ver_t http_ver_str2enum(std::string ver) {
     return HTTP_VER_1_1;
   } else if (!strcmp(ver.c_str(), ver_int2str[2])) {
     return HTTP_VER_2_0;
-  }else {
+  } else {
     return HTTP_VER_NONE;
   }
 }
 
 Message::Message(std::shared_ptr<Channal> holder)
-  : ver_(HTTP_VER_1_0), 
-    pos_(0),
-    way_(HTTP_WAY_NONE),
-    retry_time_(0),
-    holder_(holder) {
+    : ver_(HTTP_VER_1_0), pos_(0), way_(HTTP_WAY_NONE), retry_time_(0),
+      holder_(holder) {}
 
-}
-
-//Message::Message(const Message &another) {
+// Message::Message(const Message &another) {
 //  src_msg_ = another.src_msg_;
 //  ver_ = another.ver_;
 //  pos_ = another.pos_;
@@ -74,7 +59,7 @@ Message::Message(std::shared_ptr<Channal> holder)
 //  body_ = another.body_;
 //}
 //
-//Message& Message::operator = (const Message &another) {
+// Message& Message::operator = (const Message &another) {
 //  src_msg_ = another.src_msg_;
 //  pos_ = another.pos_;
 //  ver_ = another.ver_;
@@ -85,7 +70,7 @@ Message::Message(std::shared_ptr<Channal> holder)
 //  return *this;
 //}
 //
-//Message::Message(Message &&another)
+// Message::Message(Message &&another)
 //  : src_msg_(std::move(another.src_msg_)),
 //    ver_(another.ver_),
 //    pos_(another.pos_),
@@ -94,9 +79,7 @@ Message::Message(std::shared_ptr<Channal> holder)
 //    body_(std::move(another.body_)) {
 //}
 
-Message::~Message() {
-  Reset();
-}
+Message::~Message() { Reset(); }
 
 void Message::Reset(void) {
   if (!src_msg_.empty()) {
@@ -155,10 +138,10 @@ int Message::ParseHeader() {
       if (tmp1 == pos_) {
         pos_ += 2;
 #if defined(DEBUG) && defined(TEST)
-        for (auto& i : header_) {
+        for (auto &i : header_) {
           std::cout << i.first << " ---> " << i.second << std::endl;
         }
-#endif 
+#endif
         return 0;
       }
 
@@ -166,7 +149,7 @@ int Message::ParseHeader() {
       if (tmp2 == src_msg_.end()) {
 #ifdef DEBUG
         std::cout << "No expected :, not find" << std::endl;
-#endif 
+#endif
         return -1;
       }
 
@@ -190,7 +173,7 @@ int Message::ProcMessage(int fd) {
   if (ret) {
 #ifdef DEBUG
     std::cout << "AnalyseMsg failed, ret " << ret << std::endl;
-#endif 
+#endif
     return -1;
   }
 
@@ -198,7 +181,7 @@ int Message::ProcMessage(int fd) {
   if (ret) {
 #ifdef DEBUG
     std::cout << "MessageRsp failed, ret " << ret << std::endl;
-#endif 
+#endif
     return -2;
   }
 
@@ -207,7 +190,7 @@ int Message::ProcMessage(int fd) {
   return 0;
 }
 
-int Message::MessageRsp(int fd, bool& isClose) {
+int Message::MessageRsp(int fd, bool &isClose) {
   switch (way_) {
   case http_way_t::HTTP_WAY_GET:
     return handleGetRequest(fd, isClose);
@@ -221,31 +204,34 @@ int Message::MessageRsp(int fd, bool& isClose) {
 }
 
 int Message::handleGetRequest(int fd, bool &isClose) {
-  #define TIMEOUT_TIME 5
+#define TIMEOUT_TIME 5
   std::string fileType;
   struct stat st;
   int ret, resourcFd;
   char *tmp;
   const char *path = INDEX_HTML_FILE_PATH;
   std::string buff;
-  static char *shortRsp = "HTTP/1.1 200 OK\r\nContent-type: text/plain"
-    "\r\nContent-Length: 11\r\nConnection: close\r\n\r\nHello World";
-  static char *longRsp = "HTTP/1.1 200 OK\r\nContent-type: text/plain"
-    "\r\nContent-Length: 11\r\nConnection: keep-alive\r\nKeep-Alive: timeout=300\r\n\r\nHello World";
+  static char *shortRsp =
+      "HTTP/1.1 200 OK\r\nContent-type: text/plain"
+      "\r\nContent-Length: 11\r\nConnection: close\r\n\r\nHello World";
+  static char *longRsp =
+      "HTTP/1.1 200 OK\r\nContent-type: text/plain"
+      "\r\nContent-Length: 11\r\nConnection: keep-alive\r\nKeep-Alive: "
+      "timeout=300\r\n\r\nHello World";
 
-  //webbenchÑ¹Á¦²âÊÔ
+  // webbenchÑ¹Á¦²âÊÔ
 #ifdef TEST
   int len;
   if (header_.find("Connection") != header_.end() &&
-    (header_["Connection"] == "Keep-Alive" ||
-     header_["Connection"] == "keep-alive")) {
+      (header_["Connection"] == "Keep-Alive" ||
+       header_["Connection"] == "keep-alive")) {
     isClose = false;
     tmp = longRsp;
     len = strlen(longRsp);
   } else {
 #ifdef DEBUG
     std::cout << "fd " << fd << " the HTTP header not keep alive" << std::endl;
-#endif 
+#endif
     tmp = shortRsp;
     len = strlen(shortRsp);
     isClose = true;
@@ -253,19 +239,20 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   ret = web_svr_write(fd, tmp, len);
   if (ret != len)
     return -1;
-#else 
+#else
   buff = "HTTP/1.1 200 OK\r\n";
   if (header_.find("Connection") != header_.end() &&
       !strcmp(header_["Connection"].c_str(), "keep-alive")) {
     buff += "Connection: keep-alive\r\n";
-    buff += "Keep-Alive: timeout=" + std::to_string(KEEP_ALIVE_TIMEOUT_S) + "\r\n";
+    buff +=
+        "Keep-Alive: timeout=" + std::to_string(KEEP_ALIVE_TIMEOUT_S) + "\r\n";
     isClose = false;
   } else {
     buff += "Connection: close\r\n";
     isClose = true;
   }
 
-  std::string absolutePath = std::string(WORK_DIR"/index.html");
+  std::string absolutePath = std::string(WORK_DIR "/index.html");
   auto iter = path_.rfind('.');
   if (iter == std::string::npos) {
     fileType = FileType::GetFileType("default").c_str();
@@ -276,7 +263,7 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   if (stat(absolutePath.c_str(), &st) < 0) {
 #ifdef DEBUG
     std::cout << "stat failed err " << strerror(errno) << std::endl;
-#endif 
+#endif
     handleErrorRsp(fd);
     return -1;
   }
@@ -285,12 +272,12 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   buff += "Content-length: " + std::to_string(st.st_size) + "\r\n";
   buff += "\r\n";
 
-  ret = web_svr_write(fd, const_cast<char*>(buff.c_str()), buff.length());
+  ret = web_svr_write(fd, const_cast<char *>(buff.c_str()), buff.length());
   if (ret != (int)buff.length()) {
 #ifdef DEBUG
-    std::cout << "write failed, ret " << ret << " errstr "
-      << strerror(errno) << std::endl;
-#endif 
+    std::cout << "write failed, ret " << ret << " errstr " << strerror(errno)
+              << std::endl;
+#endif
     return -1;
   }
 
@@ -298,19 +285,19 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   if (resourcFd < 0) {
 #ifdef DEBUG
     std::cout << "open failed, errstr " << strerror(errno) << std::endl;
-#endif 
+#endif
     return -1;
   }
 
-  tmp = static_cast<char *>(mmap(NULL, st.st_size, PROT_READ,
-    MAP_PRIVATE, resourcFd, 0));
+  tmp = static_cast<char *>(
+      mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, resourcFd, 0));
   (void)close(resourcFd);
 
   ret = web_svr_write(fd, tmp, st.st_size);
   if (ret != st.st_size) {
 #ifdef DEBUG
     std::cout << "write file " << absolutePath << " failed, errstr"
-      << strerror(errno) << std::endl;
+              << strerror(errno) << std::endl;
 #endif
     (void)munmap(tmp, st.st_size);
     return -1;
@@ -322,30 +309,27 @@ int Message::handleGetRequest(int fd, bool &isClose) {
 
 void Message::handleErrorRsp(int fd) {
   std::string body =
-    "<html><title>Not Found</title><body bgcolor=\"ffffff\">Sorry, "
-    "the server can not find the resource.<hr><em> XieYongQi"
-    "'s WebServer CentOs 8.0 Aliyun</em>\n</body></html>";
+      "<html><title>Not Found</title><body bgcolor=\"ffffff\">Sorry, "
+      "the server can not find the resource.<hr><em> XieYongQi"
+      "'s WebServer CentOs 8.0 Aliyun</em>\n</body></html>";
 
-  std::string header =
-    "HTTP/1.1 404 Not Found!\r\n"
-    "Content-type: text/html\r\n"
-    "Connection: close\r\n"
-    "Server: XieYongQi's WebServer CentOs 8.0 Aliyun\r\n"
-    "Content-Length: " + std::to_string(body.length()) +
-    "\r\n\r\n";
-  (void)web_svr_write(fd, const_cast<char *>(header.c_str()),
-    header.length());
-  (void)web_svr_write(fd, const_cast<char*>(body.c_str()),
-    body.length());
+  std::string header = "HTTP/1.1 404 Not Found!\r\n"
+                       "Content-type: text/html\r\n"
+                       "Connection: close\r\n"
+                       "Server: XieYongQi's WebServer CentOs 8.0 Aliyun\r\n"
+                       "Content-Length: " +
+                       std::to_string(body.length()) + "\r\n\r\n";
+  (void)web_svr_write(fd, const_cast<char *>(header.c_str()), header.length());
+  (void)web_svr_write(fd, const_cast<char *>(body.c_str()), body.length());
 }
 
 int Message::AnalyseMsg() {
   int ret;
-  
+
   ret = ParseLine();
-  if (ret) 
+  if (ret)
     return -1;
-  
+
   ret = ParseHeader();
   if (ret)
     return -1;
@@ -361,13 +345,13 @@ int Message::handleReadEvent() {
     return -1;
 
   int fd = holder->getFd();
-  int num = web_svr_read(fd, const_cast<char*>(src_msg_.c_str()),
-    src_msg_.cap());
+  int num =
+      web_svr_read(fd, const_cast<char *>(src_msg_.c_str()), src_msg_.cap());
   if (num <= 0) {
 #ifdef DEBUG
     std::cout << "fd " << fd << " read message failed, ret " << num
-      << " errstr " << strerror(errno) << std::endl;
-#endif 
+              << " errstr " << strerror(errno) << std::endl;
+#endif
     ++retry_time_;
     if (errno == EPIPE || retry_time_ >= MAX_RETRY_TIME) {
       holder->setErase(true);
@@ -379,7 +363,8 @@ int Message::handleReadEvent() {
   }
   src_msg_.setSize(num);
 #ifdef DEBUG
-  std::cout << "fd " << fd << " http request: \n" << src_msg_.c_str() << std::endl;
+  std::cout << "fd " << fd << " http request: \n"
+            << src_msg_.c_str() << std::endl;
 #endif
 
   int ret = ProcMessage(fd);
@@ -391,7 +376,7 @@ int Message::handleReadEvent() {
   } else if (ret == -2) {
 #ifdef DEBUG
     std::cout << "short connection, to delete fd " << fd << std::endl;
-#endif 
+#endif
     holder->setErase(true);
   } else {
 #ifdef DEBUG
@@ -406,9 +391,7 @@ int Message::handleReadEvent() {
   return 0;
 }
 
-int Message::handleWriteEvent() {
-  return 0;
-}
+int Message::handleWriteEvent() { return 0; }
 
 int Message::handleErrorEvnet() {
   auto holder = holder_.lock();

@@ -4,12 +4,11 @@
  * function:
  */
 
-#include <EventLoopThreadPool.h>
 #include <EventLoopThread.h>
+#include <EventLoopThreadPool.h>
 
-EventLoopThreadPool::EventLoopThreadPool(int threadNum) 
-  : threadNum_(threadNum),
-    currentIndex_(0) {
+EventLoopThreadPool::EventLoopThreadPool(int threadNum)
+    : threadNum_(threadNum), currentIndex_(0) {
   worker_.resize(threadNum_);
   for (int i = 0; i < threadNum_; ++i) {
     worker_[i] = (std::make_shared<EventLoopThread>());
@@ -24,6 +23,6 @@ std::shared_ptr<EventLoopThread> EventLoopThreadPool::getNextLoopThread() {
 }
 
 void EventLoopThreadPool::start() {
-  for (auto& i : worker_)
+  for (auto &i : worker_)
     i->start();
 }

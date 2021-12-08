@@ -1,17 +1,13 @@
 #pragma once
 
-#include <string>
 #include <config.h>
 #include <cstring>
+#include <string>
 
-template<size_t size>
-class Buffer {
+template <size_t size> class Buffer {
 public:
   explicit Buffer()
-    : buff_(new char[size]),
-      size_(0),
-      cap_(size),
-      end_(size + 1) {
+      : buff_(new char[size]), size_(0), cap_(size), end_(size + 1) {
     memset(buff_, 0, sizeof(cap_));
   }
 
@@ -21,20 +17,16 @@ public:
     }
   }
 
-  Buffer(const Buffer& a) {
-    construct(a);
-  }
+  Buffer(const Buffer &a) { construct(a); }
 
-  Buffer& operator = (const Buffer& a) {
+  Buffer &operator=(const Buffer &a) {
     construct(a);
     return *this;
   }
 
-  Buffer(Buffer&& a) {
-    remove(std::move(a));
-  }
+  Buffer(Buffer &&a) { remove(std::move(a)); }
 
-  Buffer& operator = (Buffer&& a) {
+  Buffer &operator=(Buffer &&a) {
     remove(std::move(a));
     return *this;
   }
@@ -46,48 +38,36 @@ public:
     char *ret = strchr(buff_ + begin, t);
     if (ret != nullptr)
       return (ret - buff_);
-    else 
+    else
       return end_;
   }
 
-  void append(char* begin, size_t len) {
+  void append(char *begin, size_t len) {
     size_t t = cap_ - size_ ? len : cap_ - size_;
     memcpy(buff_ + size_, begin, t);
     size_ += t;
   }
 
-  inline char* c_str() {
-    return (buff_);
-  }
+  inline char *c_str() { return (buff_); }
 
-  inline size_t length() {
-    return size_;
-  }
+  inline size_t length() { return size_; }
 
   inline void clear() {
     buff_[0] = '\0';
     size_ = 0;
-    //No necessary
+    // No necessary
 #ifdef DEBUG
     memset(buff_, 0, cap_);
 #endif
   }
 
-  inline size_t cap() {
-    return cap_;
-  }
+  inline size_t cap() { return cap_; }
 
-  inline size_t end() {
-    return end_;
-  }
+  inline size_t end() { return end_; }
 
-  inline bool empty() {
-    return size_ == 0;
-  }
-  
-  inline void setSize(size_t s) {
-      size_ = s;
-  }
+  inline bool empty() { return size_ == 0; }
+
+  inline void setSize(size_t s) { size_ = s; }
 
   std::string substr(size_t begin, size_t len = 0) {
     if (begin > size_) {
@@ -95,16 +75,14 @@ public:
     }
     if (len) {
       return std::string(&buff_[begin],
-        begin + len >= size_ ?
-        size_ - begin + 1 : len);
+                         begin + len >= size_ ? size_ - begin + 1 : len);
     } else {
-      return std::string(&buff_[begin],
-        size_ - begin + 1);
+      return std::string(&buff_[begin], size_ - begin + 1);
     }
   }
-  
+
 private:
-  void construct(const Buffer& a) {
+  void construct(const Buffer &a) {
     buff_ = new char[a.cap_];
     cap_ = a.cap_;
     end_ = a.end_;
@@ -112,7 +90,7 @@ private:
     memcpy(buff_, a.buff_, size_);
   }
 
-  void remove(Buffer&& a) {
+  void remove(Buffer &&a) {
     buff_ = a.buff_;
     size_ = a.size_;
     cap_ = a.cap_;

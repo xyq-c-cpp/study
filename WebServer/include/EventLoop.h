@@ -6,7 +6,7 @@ class EventLoop {
 public:
   EventLoop();
   ~EventLoop() = default;
-  void queueInLoop(Task&& task);
+  void queueInLoop(Task &&task);
   std::shared_ptr<Epoller> getEpoll();
   void loop();
   void stop();

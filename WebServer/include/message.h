@@ -8,35 +8,35 @@
  * note: restructure with C++11 and code specification.
  */
 
-#ifndef  _MESSAGE_H_
-#define  _MESSAGE_H_
+#ifndef _MESSAGE_H_
+#define _MESSAGE_H_
 
-#include <Common.h>
-#include <sys/stat.h>
-#include <sys/mman.h>
-#include <Channal.h>
 #include <Buffer.h>
+#include <Channal.h>
+#include <Common.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
 
-#define HTTP_WAY_GET_STR    "GET"
-#define HTTP_WAY_POST_STR   "POST"
-#define HTTP_WAY_HEAD_STR   "HEAD"
+#define HTTP_WAY_GET_STR "GET"
+#define HTTP_WAY_POST_STR "POST"
+#define HTTP_WAY_HEAD_STR "HEAD"
 
 typedef enum {
   HTTP_WAY_GET = 0,
   HTTP_WAY_POST,
   HTTP_WAY_HEAD,
   HTTP_WAY_NONE
-}http_way_t;
+} http_way_t;
 
 typedef enum {
   HTTP_VER_1_0 = 0,
   HTTP_VER_1_1,
   HTTP_VER_2_0,
   HTTP_VER_NONE
-}http_ver_t;
+} http_ver_t;
 
 class Message {
- public:
+public:
   explicit Message(std::shared_ptr<Channal> holder);
   ~Message();
   /*Message(const Message &another);
@@ -47,7 +47,7 @@ class Message {
   int handleWriteEvent();
   int handleErrorEvnet();
 
- private:
+private:
   int ProcMessage(int fd);
   void Reset();
   int ParseLine(void);
@@ -55,7 +55,7 @@ class Message {
   int AnalyseMsg(void);
   int MessageRsp(int fd, bool &isClose);
   void handleErrorRsp(int fd);
-  int handleGetRequest(int fd, bool& isClose);
+  int handleGetRequest(int fd, bool &isClose);
 
   http_ver_t ver_;
   unsigned int pos_;
@@ -70,4 +70,3 @@ class Message {
 };
 
 #endif /* _MESSAGE_H_ */
-
