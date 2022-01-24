@@ -77,13 +77,13 @@ int Server::acceptConnection() {
       break;
     }
 #ifdef DEBUG
-    std::cout << "accept success, fd " << fd << ", addr "
-              << inet_ntoa(addr.sin_addr) << std::endl;
+    logger() << "accept success, fd " << fd << ", addr "
+             << inet_ntoa(addr.sin_addr);
 #endif
     //略有粗略 更好的做法是系统调用获取当前进程可打开的文件描述符数量；
     if (fd >= maxOpenFile_) {
 #ifdef DEBUG
-      std::cout << "waring!!! the num of fd has been the most max" << std::endl;
+      logger() << "waring!!! the num of fd has been the most max";
 #endif
       close(fd);
       continue;
@@ -107,18 +107,19 @@ int Server::acceptConnection() {
     tmp->setReadCb(std::bind(&Message::handleReadEvent, msg));
     tmp->setWriteCb(std::bind(&Message::handleWriteEvent, msg));
     tmp->setErrorCb(std::bind(&Message::handleErrorEvnet, msg));
+    tmp->setConnectHandleCb(std::bind(&Message::HandleConnectEvent, msg));
     loop->runInLoop(std::bind([tmp, loop]() -> int {
       bool ret =
           loop->getEventLoop()->getEpoll()->epollAdd(tmp, DEFAULT_TIMEOUT_MS);
       if (!ret) {
 #ifdef DEBUG
-        std::cout << "add to epoll failed, fd " << tmp->getFd() << std::endl;
+        logger() << "add to epoll failed, fd " << tmp->getFd();
 #endif
       }
       return ret;
     }));
 #ifdef DEBUG
-    std::cout << "create channal success, fd " << fd << std::endl;
+    logger() << "create channal success, fd " << fd;
 #endif
   }
   return 0;

@@ -8,6 +8,12 @@
  * note: restructure with C++11 and code specification.
  */
 
+// 2022.01.24
+//遇到一个问题：
+//当http响应头和响应体合在一起发送时，浏览器端会一直顺时针转圈；
+//当http响应头和响应体分开发送时，表现就正常；
+//目前，还没有找出原因。
+
 #include <Epoller.h>
 #include <Filetype.h>
 #include <Message.h>
@@ -48,43 +54,18 @@ static http_ver_t http_ver_str2enum(std::string ver) {
 
 Message::Message(std::shared_ptr<Channal> holder)
     : ver_(HTTP_VER_1_0), pos_(0), way_(HTTP_WAY_NONE), retry_time_(0),
-      holder_(holder) {}
-
-// Message::Message(const Message &another) {
-//  src_msg_ = another.src_msg_;
-//  ver_ = another.ver_;
-//  pos_ = another.pos_;
-//  way_ = another.way_;
-//  header_ = another.header_;
-//  body_ = another.body_;
-//}
-//
-// Message& Message::operator = (const Message &another) {
-//  src_msg_ = another.src_msg_;
-//  pos_ = another.pos_;
-//  ver_ = another.ver_;
-//  way_ = another.way_;
-//  header_ = another.header_;
-//  body_ = another.body_;
-//
-//  return *this;
-//}
-//
-// Message::Message(Message &&another)
-//  : src_msg_(std::move(another.src_msg_)),
-//    ver_(another.ver_),
-//    pos_(another.pos_),
-//    way_(another.way_),
-//    header_(std::move(another.header_)),
-//    body_(std::move(another.body_)) {
-//}
+      holder_(holder) {
+  keep_alive = false;
+  error = false;
+  rsp_.clear();
+}
 
 Message::~Message() { Reset(); }
 
 void Message::Reset(void) {
-  if (!src_msg_.empty()) {
-    src_msg_.clear();
-  }
+  // if (!src_msg_.empty()) {
+  //  src_msg_.clear();
+  //}
 
   ver_ = HTTP_VER_1_0;
   pos_ = 0;
@@ -139,7 +120,7 @@ int Message::ParseHeader() {
         pos_ += 2;
 #if defined(DEBUG) && defined(TEST)
         for (auto &i : header_) {
-          std::cout << i.first << " ---> " << i.second << std::endl;
+          logger() << i.first << " ---> " << i.second;
         }
 #endif
         return 0;
@@ -148,7 +129,7 @@ int Message::ParseHeader() {
       tmp2 = src_msg_.find(':', pos_);
       if (tmp2 == src_msg_.end()) {
 #ifdef DEBUG
-        std::cout << "No expected :, not find" << std::endl;
+        logger() << "No expected :, not find";
 #endif
         return -1;
       }
@@ -172,21 +153,20 @@ int Message::ProcMessage(int fd) {
   ret = AnalyseMsg();
   if (ret) {
 #ifdef DEBUG
-    std::cout << "AnalyseMsg failed, ret " << ret << std::endl;
+    logger() << "AnalyseMsg failed, ret " << ret << " fd " << fd;
 #endif
+    handleErrorRsp(holder_.lock()->getFd());
     return -1;
   }
 
   ret = MessageRsp(fd, is_close);
-  if (ret) {
+  if (ret != 0) {
 #ifdef DEBUG
-    std::cout << "MessageRsp failed, ret " << ret << std::endl;
+    logger() << "MessageRsp failed, ret " << ret << " fd " << fd;
 #endif
-    return -2;
+    return -1;
   }
 
-  if (is_close)
-    return -2;
   return 0;
 }
 
@@ -197,7 +177,7 @@ int Message::MessageRsp(int fd, bool &isClose) {
   default:
     handleErrorRsp(fd);
 #ifdef DEBUG
-    std::cout << "No support way" << std::endl;
+    logger() << "No support way";
 #endif
     return -1;
   }
@@ -226,15 +206,17 @@ int Message::handleGetRequest(int fd, bool &isClose) {
       (header_["Connection"] == "Keep-Alive" ||
        header_["Connection"] == "keep-alive")) {
     isClose = false;
+    keep_alive = true;
     tmp = longRsp;
     len = strlen(longRsp);
   } else {
 #ifdef DEBUG
-    std::cout << "fd " << fd << " the HTTP header not keep alive" << std::endl;
+    logger() << "fd " << fd << " the HTTP header not keep alive";
 #endif
     tmp = shortRsp;
     len = strlen(shortRsp);
     isClose = true;
+    keep_alive = false;
   }
   ret = web_svr_write(fd, tmp, len);
   if (ret != len)
@@ -247,9 +229,11 @@ int Message::handleGetRequest(int fd, bool &isClose) {
     buff +=
         "Keep-Alive: timeout=" + std::to_string(KEEP_ALIVE_TIMEOUT_S) + "\r\n";
     isClose = false;
+    keep_alive = true;
   } else {
     buff += "Connection: close\r\n";
     isClose = true;
+    keep_alive = false;
   }
 
   std::string absolutePath = std::string(WORK_DIR "/index.html");
@@ -260,9 +244,10 @@ int Message::handleGetRequest(int fd, bool &isClose) {
     absolutePath = std::string(WORK_DIR) + path_;
     fileType = FileType::GetFileType(path_.substr(iter).c_str());
   }
+
   if (stat(absolutePath.c_str(), &st) < 0) {
 #ifdef DEBUG
-    std::cout << "stat failed err " << strerror(errno) << std::endl;
+    logger() << "stat failed err " << strerror(errno);
 #endif
     handleErrorRsp(fd);
     return -1;
@@ -272,19 +257,30 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   buff += "Content-length: " + std::to_string(st.st_size) + "\r\n";
   buff += "\r\n";
 
-  ret = web_svr_write(fd, const_cast<char *>(buff.c_str()), buff.length());
-  if (ret != (int)buff.length()) {
-#ifdef DEBUG
-    std::cout << "write failed, ret " << ret << " errstr " << strerror(errno)
-              << std::endl;
-#endif
-    return -1;
+  auto send_ret = send(fd, buff.c_str(), buff.size(), 0);
+  if (send_ret != buff.size()) {
+    logger() << "send header not all, send_ret " << send_ret << " all "
+             << buff.size();
+  } else {
+    logger() << "rsp header:\n" << buff;
   }
+
+  // logger() << "rsp header:\n" << buff;
+  // rsp_ += buff;
+
+  //  ret = web_svr_write(fd, const_cast<char *>(buff.c_str()), buff.length());
+  //  if (ret != (int)buff.length()) {
+  //#ifdef DEBUG
+  //    logger() << "write failed, ret " << ret << " errstr " << strerror(errno)
+  //              ;
+  //#endif
+  //    return -1;
+  //  }
 
   resourcFd = open(absolutePath.c_str(), O_RDONLY, 0);
   if (resourcFd < 0) {
 #ifdef DEBUG
-    std::cout << "open failed, errstr " << strerror(errno) << std::endl;
+    logger() << "open failed, errstr " << strerror(errno);
 #endif
     return -1;
   }
@@ -293,14 +289,22 @@ int Message::handleGetRequest(int fd, bool &isClose) {
       mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, resourcFd, 0));
   (void)close(resourcFd);
 
-  ret = web_svr_write(fd, tmp, st.st_size);
+  rsp_ += std::string(tmp, st.st_size);
+
+  // logger() << "fd " << fd << " rsp\n " << rsp_;
+
+  // ret = web_svr_write(fd, tmp, st.st_size);
+  ret = send(fd, tmp, st.st_size, 0);
   if (ret != st.st_size) {
 #ifdef DEBUG
-    std::cout << "write file " << absolutePath << " failed, errstr"
-              << strerror(errno) << std::endl;
+    logger() << "write file " << absolutePath << " not all, errstr "
+             << strerror(errno) << " all " << st.st_size << " ret " << ret;
 #endif
-    (void)munmap(tmp, st.st_size);
-    return -1;
+    rsp_ = rsp_.substr(ret);
+    auto &t = holder_.lock()->getEvent();
+    t = EPOLLOUT | EPOLLET;
+  } else {
+    rsp_.clear();
   }
   (void)munmap(tmp, st.st_size);
 #endif
@@ -334,73 +338,161 @@ int Message::AnalyseMsg() {
   if (ret)
     return -1;
 
-  body_ = src_msg_.substr(pos_);
+  if (way_ == http_way_t::HTTP_WAY_GET) {
+
+  } else if (way_ == http_way_t::HTTP_WAY_POST) {
+    if (!header_["Content-length"].empty()) {
+      int len = atoi(header_["Content-length"].c_str());
+      body_ = src_msg_.substr(pos_, len);
+      pos_ += len;
+    }
+  }
+
+  src_msg_.reset(pos_);
+
   return 0;
 }
 
 int Message::handleReadEvent() {
   src_msg_.clear();
   std::shared_ptr<Channal> holder = holder_.lock();
-  if (holder == nullptr)
-    return -1;
+
+  auto &event_ = holder->getEvent();
+
+  logger() << "handle read event, fd " << holder->getFd();
 
   int fd = holder->getFd();
-  int num =
-      web_svr_read(fd, const_cast<char *>(src_msg_.c_str()), src_msg_.cap());
-  if (num <= 0) {
-#ifdef DEBUG
-    std::cout << "fd " << fd << " read message failed, ret " << num
-              << " errstr " << strerror(errno) << std::endl;
-#endif
-    ++retry_time_;
-    if (errno == EPIPE || retry_time_ >= MAX_RETRY_TIME) {
-      holder->setErase(true);
+  bool rs = true;
+  char buf[512];
+  const int times = 3;
+  int time = 0;
+  do {
+    memset(buf, 0, sizeof(buf));
+    int read_num = recv(fd, buf, sizeof(buf), 0);
+    if (read_num < 0) {
+      logger() << "read_num " << read_num << " fd " << fd << " errno " << errno
+               << ", " << strerror(errno);
+      if (errno == EAGAIN || errno == EWOULDBLOCK) {
+        event_ = EPOLLIN | EPOLLET;
+        keep_alive = true;
+        break;
+      } else if (errno == EPIPE) {
+        event_ = 0;
+        keep_alive = false;
+        error = true;
+        return -1;
+      } else {
+        logger() << "can not read msg, ret " << read_num << " errno " << errno
+                 << ", " << strerror(errno);
+        handleErrorRsp(fd);
+        error = true;
+        return -1;
+      }
+    } else if (read_num == 0) {
+      //对端已关闭
+      logger() << "the peer connect close, fd " << fd << " errno" << errno
+               << ", " << strerror(errno);
+      event_ = 0;
+      keep_alive = false;
       return -1;
+    } else {
+      src_msg_.append(buf, read_num);
     }
-    holder->setEvent(EPOLLIN | EPOLLET | EPOLLONESHOT);
-    holder->setIsUpdateEvent(true);
-    return -1;
-  }
-  src_msg_.setSize(num);
+  } while (rs);
+
+  //  int num =
+  //      web_svr_read(fd, const_cast<char *>(src_msg_.c_str()),
+  //      src_msg_.cap());
+  //  if (num <= 0) {
+  //#ifndef DEBUG
+  //    logger() << "fd " << fd << " read message failed, ret " << num
+  //              << " errstr " << strerror(errno) ;
+  //#endif
+  //    ++retry_time_;
+  //    if (errno == EPIPE) {
+  //      error = true;
+  //      event_ = 0;
+  //      return -1;
+  //    } else if (retry_time_ >= MAX_RETRY_TIME){
+  //      event_ = EPOLLET | EPOLLOUT;
+  //      keep_alive = true;
+  //    } else {
+  //      event_ = (EPOLLIN | EPOLLET | EPOLLONESHOT);
+  //      keep_alive = true;
+  //    }
+  //    return -1;
+  //  }
+
 #ifdef DEBUG
-  std::cout << "fd " << fd << " http request: \n"
-            << src_msg_.c_str() << std::endl;
+  logger() << "fd " << fd << " http request: \n" << src_msg_.c_str();
 #endif
 
-  int ret = ProcMessage(fd);
-  if (ret == -1) {
-#ifdef DEBUG
-    std::cout << "ProcMessage failed, to delete fd " << fd << std::endl;
-#endif
-    holder->setErase(true);
-  } else if (ret == -2) {
-#ifdef DEBUG
-    std::cout << "short connection, to delete fd " << fd << std::endl;
-#endif
-    holder->setErase(true);
-  } else {
-#ifdef DEBUG
-    std::cout << "long connection, keep alive, fd " << fd << std::endl;
-#endif
-    holder->setEvent(EPOLLIN | EPOLLET);
-    holder->setIsUpdateEvent(true);
-    holder->setErase(false);
-  }
+  ProcMessage(fd);
+
   Reset();
 
   return 0;
 }
 
-int Message::handleWriteEvent() { return 0; }
+int Message::handleWriteEvent() {
+  std::shared_ptr<Channal> holder = holder_.lock();
+  if (holder == nullptr)
+    return -1;
+
+  logger() << "handle write event, fd " << holder->getFd();
+
+  auto &event_ = holder->getEvent();
+  if (rsp_.empty()) {
+    event_ = EPOLLIN | EPOLLET;
+  } else {
+    auto ret = send(holder->getFd(), rsp_.c_str(), rsp_.size(), 0);
+    if (ret < rsp_.size()) {
+      event_ = EPOLLOUT | EPOLLET;
+      rsp_ = rsp_.substr(ret);
+    } else {
+      rsp_.clear();
+      event_ = EPOLLIN | EPOLLET;
+    }
+  }
+
+  return 0;
+}
 
 int Message::handleErrorEvnet() {
   auto holder = holder_.lock();
-  if (holder == nullptr) {
-#ifdef DEBUG
-    std::cout << "holder weak_ptr to shared_ptr failed" << std::endl;
-#endif
-    return -1;
+  auto &event_ = holder->getEvent();
+
+  logger() << "handle error event, fd " << holder->getFd();
+
+  event_ = 0;
+  keep_alive = false;
+
+  return 0;
+}
+
+int Message::HandleConnectEvent() {
+  auto holder = holder_.lock();
+  auto &event_ = holder->getEvent();
+
+  logger() << "handle connect, fd " << holder->getFd() << " error " << error
+           << " keep_alive " << keep_alive << " event_ " << event_;
+
+  auto epoller = holder->getEpoller();
+
+  holder->delTimer();
+
+  if (!error) {
+    if (event_ != 0) {
+      epoller->epollMod(holder->getFd(), event_, KEEP_ALIVE_TIMEOUT_MS);
+    } else if (keep_alive) {
+      epoller->epollMod(holder->getFd(), EPOLLIN | EPOLLET,
+                        KEEP_ALIVE_TIMEOUT_MS);
+    } else {
+      epoller->epollDel(holder->getFd());
+    }
+  } else {
+    epoller->epollDel(holder->getFd());
   }
-  holder->setErase(true);
+
   return 0;
 }

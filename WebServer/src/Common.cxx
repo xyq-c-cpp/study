@@ -9,8 +9,10 @@
  */
 
 #include <Common.h>
+#ifndef _MSC_VER
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#endif
 
 bool web_svr_set_fd_no_block(int fd) {
   int flag = fcntl(fd, F_GETFL, 0);
@@ -95,13 +97,13 @@ int getMaxOpenFileNum() {
   int ret = getrlimit(RLIMIT_NOFILE, &r);
   if (ret != 0) {
 #ifdef DEBUG
-    std::cout << "getrlimit failed, ret " << ret << " errstr "
-              << strerror(errno) << std::endl;
+    logger() << "getrlimit failed, ret " << ret << " errstr "
+             << strerror(errno);
 #endif
     return 1024;
   }
 #ifdef DEBUG
-  std::cout << "max open file " << static_cast<int>(r.rlim_max) << std::endl;
+  logger() << "max open file " << static_cast<int>(r.rlim_max);
 #endif
   return static_cast<int>(r.rlim_max);
 }

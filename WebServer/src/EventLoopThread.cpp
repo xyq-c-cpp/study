@@ -9,9 +9,12 @@
 #include <EventLoop.h>
 #include <EventLoopThread.h>
 #include <Timer.h>
-#include <pthread.h>
 #include <sstream>
+
+#ifndef _MSC_VER
+#include <pthread.h>
 #include <sys/eventfd.h>
+#endif
 
 EventLoopThread::EventLoopThread()
     : mainLoop_(std::make_shared<EventLoop>()),
@@ -59,8 +62,7 @@ int EventLoopThread::handleWakeupEvent() {
   uint64_t tt = 0;
   (void)web_svr_read(wakeupFd, reinterpret_cast<char *>(&tt), sizeof(tt));
 #ifdef DEBUG
-  std::cout << "handle wakeup event, fd " << wakeupFd << " tt " << tt
-            << std::endl;
+  logger() << "handle wakeup event, fd " << wakeupFd << " tt " << tt;
 #endif
   return 0;
 }

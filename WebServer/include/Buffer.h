@@ -81,6 +81,24 @@ public:
     }
   }
 
+  void reset(size_t begin, size_t len = 0) {
+    if (begin >= size) {
+      memset(buff_, 0, cap_);
+      size_ = 0;
+    } else if (len == 0) {
+      memmove(buff_, buff_ + begin, size_ - begin);
+      size_ = size_ - begin;
+    } else {
+      if (begin + len > size_) {
+        memmove(buff_, buff_ + begin, size_ - begin);
+        size_ = size_ - begin;
+      } else {
+        memmove(buff_, buff_ + begin, len);
+        size_ = len;
+      }
+    }
+  }
+
 private:
   void construct(const Buffer &a) {
     buff_ = new char[a.cap_];

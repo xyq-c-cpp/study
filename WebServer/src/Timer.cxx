@@ -9,20 +9,20 @@
 Timer::Timer(std::shared_ptr<Channal> channal, int msec)
     : channal_(channal), expiredTime_(NOW + msec), isDeleted_(false) {
 #ifdef DEBUG
-  std::cout << "new timer, expired " << expiredTime_ << "ms fd "
-            << channal->getFd() << std::endl;
+  logger() << "new timer, expired " << expiredTime_ << "ms fd "
+           << channal->getFd();
 #endif
 }
 
 Timer::~Timer() {
   if (channal_ != nullptr) {
 #ifdef DEBUG
-    std::cout << "~timer close fd " << channal_->getFd() << std::endl;
+    logger() << "~timer close fd " << channal_->getFd();
 #endif
     channal_->handleClose();
   } else {
 #ifdef DEBUG
-    std::cout << "this timer resource has been freed" << std::endl;
+    logger() << "this timer resource has been freed";
 #endif
   }
 }
@@ -30,7 +30,7 @@ Timer::~Timer() {
 void Timer::setDeleted() {
   isDeleted_ = true;
 #ifdef DEBUG
-  std::cout << "timer's channal reset, fd " << channal_->getFd() << std::endl;
+  logger() << "timer's channal reset, fd " << channal_->getFd();
 #endif
   channal_.reset();
 }
@@ -43,8 +43,8 @@ bool Timer::isValid() {
   long long tmp = NOW;
   if (tmp > expiredTime_) {
 #ifdef DEBUG
-    std::cout << "Not valid, tmp " << tmp << "ms expired " << expiredTime_
-              << "ms" << std::endl;
+    logger() << "Not valid, tmp " << tmp << "ms expired " << expiredTime_
+             << "ms";
 #endif
     return false;
   } else {
