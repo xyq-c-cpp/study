@@ -14,8 +14,11 @@
 #include <Buffer.h>
 #include <Channal.h>
 #include <Common.h>
+
+#ifndef _MSC_VER
 #include <sys/mman.h>
 #include <sys/stat.h>
+#endif // !_MSC_VER
 
 #define HTTP_WAY_GET_STR "GET"
 #define HTTP_WAY_POST_STR "POST"
@@ -39,13 +42,11 @@ class Message {
 public:
   explicit Message(std::shared_ptr<Channal> holder);
   ~Message();
-  /*Message(const Message &another);
-  Message& operator = (const Message &another);
-  Message(Message &&another);*/
 
   int handleReadEvent();
   int handleWriteEvent();
   int handleErrorEvnet();
+  int HandleConnectEvent();
 
 private:
   int ProcMessage(int fd);
@@ -56,6 +57,7 @@ private:
   int MessageRsp(int fd, bool &isClose);
   void handleErrorRsp(int fd);
   int handleGetRequest(int fd, bool &isClose);
+  int handlePostRequest(int fd);
 
   http_ver_t ver_;
   unsigned int pos_;
@@ -63,10 +65,13 @@ private:
   int retry_time_;
   std::weak_ptr<Channal> holder_;
   std::string path_;
-  Buffer<1024> src_msg_;
+  // 1024´æÔÚÒþ»¼
+  Buffer<2048> src_msg_;
   std::string body_;
   std::map<std::string, std::string> header_;
   std::string rsp_;
+  bool keep_alive;
+  bool error;
 };
 
 #endif /* _MESSAGE_H_ */

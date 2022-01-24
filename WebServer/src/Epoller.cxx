@@ -20,7 +20,7 @@ Epoller::Epoller(int maxFdNum)
 
 Epoller::~Epoller() {
 #ifdef DEBUG
-  std::cout << "~epoller fd " << fd_ << std::endl;
+  logger() << "~epoller fd " << fd_;
 #endif
   (void)close(fd_);
 }
@@ -29,9 +29,8 @@ bool Epoller::epollAdd(std::shared_ptr<Channal> channal, int msec) {
   auto i = fd2channal_.find(channal->getFd());
   if (i != fd2channal_.end()) {
 #ifdef DEBUG
-    std::cout << "tid " << std::this_thread::get_id()
-              << " epoll_add failed, has fd " << channal->getFd() << " exist"
-              << std::endl;
+    logger() << "tid " << std::this_thread::get_id()
+             << " epoll_add failed, has fd " << channal->getFd() << " exist";
 #endif
     return false;
   }
@@ -39,8 +38,7 @@ bool Epoller::epollAdd(std::shared_ptr<Channal> channal, int msec) {
     auto timer = timerManager_->addTimer(channal, msec);
     if (timer == nullptr) {
 #ifdef DEBUG
-      std::cout << "epoll_add add timer failed, fd " << channal->getFd()
-                << std::endl;
+      logger() << "epoll_add add timer failed, fd " << channal->getFd();
 #endif
       return false;
     }
@@ -52,8 +50,8 @@ bool Epoller::epollAdd(std::shared_ptr<Channal> channal, int msec) {
     return ret.second;
   }
 #ifdef DEBUG
-  std::cout << "tid " << std::this_thread::get_id() << "epoll_add failed, fd "
-            << channal->getFd() << std::endl;
+  logger() << "tid " << std::this_thread::get_id() << "epoll_add failed, fd "
+           << channal->getFd();
 #endif
   channal->delTimer();
   return false;
@@ -63,8 +61,8 @@ bool Epoller::epollMod(int fd, uint32_t event, int msec) {
   auto i = fd2channal_.find(fd);
   if (i == fd2channal_.end()) {
 #ifdef DEBUG
-    std::cout << "tid " << std::this_thread::get_id()
-              << "epoll_mod failed, not find fd " << fd << std::endl;
+    logger() << "tid " << std::this_thread::get_id()
+             << "epoll_mod failed, not find fd " << fd;
 #endif
     return false;
   }
@@ -72,7 +70,7 @@ bool Epoller::epollMod(int fd, uint32_t event, int msec) {
     auto timer = timerManager_->addTimer(fd2channal_[fd], msec);
     if (timer == nullptr) {
 #ifdef DEBUG
-      std::cout << "epoll_mod add timer failed, fd " << fd << std::endl;
+      logger() << "epoll_mod add timer failed, fd " << fd;
 #endif
       return false;
     }
@@ -91,8 +89,8 @@ bool Epoller::epollDel(int fd) {
   auto i = fd2channal_.find(fd);
   if (i == fd2channal_.end()) {
 #ifdef DEBUG
-    std::cout << "tid " << std::this_thread::get_id()
-              << "epoll_del, not find fd " << fd << std::endl;
+    logger() << "tid " << std::this_thread::get_id()
+             << "epoll_del, not find fd " << fd;
 #endif
     return false;
   }
@@ -100,8 +98,8 @@ bool Epoller::epollDel(int fd) {
   bool ret = epollCtl(EPOLL_CTL_DEL, fd, 0);
   if (!ret) {
 #ifdef DEBUG
-    std::cout << "tid " << std::this_thread::get_id() << "epoll_del failed, fd "
-              << fd << std::endl;
+    logger() << "tid " << std::this_thread::get_id() << "epoll_del failed, fd "
+             << fd;
 #endif
     fd2channal_.erase(fd);
     return false;
@@ -112,12 +110,12 @@ bool Epoller::epollDel(int fd) {
 
 inline bool Epoller::epollCtl(int op, int fd, uint32_t event) {
   struct epoll_event myEvent;
-  
+
   memset(&myEvent, 0, sizeof(myEvent));
   myEvent.data.fd = fd;
   myEvent.events = event;
   int ret = epoll_ctl(fd_, op, fd, &myEvent);
-  
+
   return ret == 0 ? true : false;
 }
 
@@ -130,38 +128,38 @@ void Epoller::epollWait(int msec) {
   struct epoll_event *ptr = eventArray_.get();
   ret = epoll_wait(fd_, ptr, maxFdNum_, DEFAULT_WAIT_TIME);
   if (ret <= 0) {
-#ifdef DEBUG
-    std::cout
-        << "wake up from epoll_wait, but not events, to handle timerExpired"
-        << std::endl;
-#endif
+    //#ifdef DEBUG
+    //    logger()
+    //        << "wake up from epoll_wait, but not events, to handle
+    //        timerExpired";
+    //#endif
     return;
   }
 
 #ifdef DEBUG
-  std::cout << "tid " << std::this_thread::get_id() << " epoll_wait get " << ret
-            << " events to handle" << std::endl;
+  logger() << "tid " << std::this_thread::get_id() << " epoll_wait get " << ret
+           << " events to handle";
 #endif
 
   int eventFd, localEvent;
   for (int i = 0; i < ret; ++i) {
 #ifdef DEBUG
-    std::cout << "tid " << std::this_thread::get_id() << " epoll_wait fd "
-              << ptr[i].data.fd << " events " << ptr[i].events << std::endl;
+    logger() << "tid " << std::this_thread::get_id() << " epoll_wait fd "
+             << ptr[i].data.fd << " events " << ptr[i].events;
 #endif
     std::shared_ptr<Channal> &channal = fd2channal_[ptr[i].data.fd];
     if (channal == nullptr) {
 #ifdef DEBUG
-      std::cout << "tid " << std::this_thread::get_id()
-                << " epoll_wait channal == nullptr" << std::endl;
+      logger() << "tid " << std::this_thread::get_id()
+               << " epoll_wait channal == nullptr";
 #endif
       continue;
     }
     channal->updateEventAndLastEvent(ptr[i].events);
 #ifdef DEBUG
     ret = channal->handleEvent();
-    std::cout << "tid " << std::this_thread::get_id() << " handleEvent RET "
-              << ret << std::endl;
+    logger() << "tid " << std::this_thread::get_id() << " handleEvent RET "
+             << ret;
 #else
     (void)channal->handleEvent();
 #endif

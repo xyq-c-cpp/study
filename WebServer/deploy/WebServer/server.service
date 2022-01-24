@@ -3,7 +3,8 @@ Description=this is my WebServer
 
 [Service]
 Type=simple
-ExecStart=/WebServer/start.sh
+ExecStart=/WebServer/start.sh start
+ExecStop=/WebServer/start.sh stop
 RemainAfterExit=yes
 
 [Install]

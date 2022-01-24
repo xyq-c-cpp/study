@@ -17,13 +17,15 @@
 Channal::Channal(int fd, std::shared_ptr<Epoller> epoller)
     : fd_(fd), epoller_(epoller), isErase_(false), isUpdate_(false) {
 #ifdef DEBUG
-  std::cout << "channal init, fd " << fd_ << std::endl;
+  logger() << "channal init, fd " << fd_;
 #endif
+  event_ = 0;
+  lastEvent_ = 0;
 }
 
 Channal::~Channal() {
 #ifdef DEBUG
-  std::cout << "~channal, fd " << fd_ << std::endl;
+  logger() << "~channal, fd " << fd_;
 #endif
   (void)close(fd_);
 }
@@ -34,6 +36,10 @@ void Channal::setReadCb(EventCb &&cb) { readCb_ = std::move(cb); }
 
 void Channal::setErrorCb(EventCb &&cb) { errorCb_ = std::move(cb); }
 
+void Channal::setConnectHandleCb(EventCb &&cb) {
+  connectHandleCb_ = std::move(cb);
+}
+
 void Channal::setEvent(uint32_t event) { event_ = event; }
 
 void Channal::setMsg(std::shared_ptr<Message> msg) { msg_ = msg; }
@@ -41,44 +47,58 @@ void Channal::setMsg(std::shared_ptr<Message> msg) { msg_ = msg; }
 void Channal::setIsUpdateEvent(bool isUpdate) { isUpdate_ = isUpdate; }
 
 int Channal::handleEvent() {
-  uint32_t localEvent = event_;
+  event_ = 0;
 
-  if ((localEvent & EPOLLHUP) && !(localEvent & EPOLLIN)) {
+  logger() << "lastEvent " << lastEvent_ << " fd " << fd_;
+
+  if ((lastEvent_ & EPOLLHUP) && !(lastEvent_ & EPOLLIN)) {
 #ifdef DEBUG
-    std::cout << "EPOLLHUP fd " << fd_ << std::endl;
+    logger() << "EPOLLHUP fd " << fd_;
 #endif
-    isErase_ = true;
-  } else if (localEvent & EPOLLERR) {
-    if (errorCb_)
+    event_ = 0;
+  }
+
+  if (lastEvent_ & EPOLLERR) {
+    if (errorCb_) {
       (void)errorCb_();
-  } else if (localEvent & (EPOLLIN | EPOLLPRI | EPOLLHUP)) {
+      event_ = 0;
+    }
+  }
+
+  if (lastEvent_ & (EPOLLIN | EPOLLPRI | EPOLLHUP)) {
     if (readCb_)
       (void)readCb_();
-  } else if (localEvent & EPOLLOUT) {
+  }
+
+  if (lastEvent_ & EPOLLOUT) {
     if (writeCb_)
       (void)writeCb_();
   }
 
-  delTimer();
-  auto epoller = epoller_.lock();
-  if (epoller != nullptr) {
-    if (isErase_)
-      return epoller->epollDel(fd_);
-    else if (isUpdate_) // KEEP-ALIVE
-      return epoller->epollMod(fd_, event_, KEEP_ALIVE_TIMEOUT_MS);
-    else {
-#ifdef DEBUG
-      std::cout << "do nothing, and not timer, lastevent " << lastEvent_
-                << std::endl;
-#endif
-      return 0;
-    }
-  } else {
-#ifdef DEBUG
-    std::cout << "epoller weak_ptr to shared_ptr failed" << std::endl;
-#endif
-    return -1;
+  if (connectHandleCb_) {
+    (void)connectHandleCb_();
   }
+
+  //  delTimer();
+  //  auto epoller = epoller_.lock();
+  //  if (epoller != nullptr) {
+  //    if (isErase_)
+  //      return epoller->epollDel(fd_);
+  //    else if (isUpdate_) // KEEP-ALIVE
+  //      return epoller->epollMod(fd_, event_, KEEP_ALIVE_TIMEOUT_MS);
+  //    else {
+  //#ifdef DEBUG
+  //      logger() << "do nothing, and not timer, lastevent " << lastEvent_
+  //                ;
+  //#endif
+  //      return 0;
+  //    }
+  //  } else {
+  //#ifdef DEBUG
+  //    logger() << "epoller weak_ptr to shared_ptr failed" ;
+  //#endif
+  //    return -1;
+  //  }
 }
 
 int &Channal::getFd() { return fd_; }
@@ -86,7 +106,7 @@ int &Channal::getFd() { return fd_; }
 uint32_t &Channal::getEvent() { return event_; }
 
 void Channal::updateEventAndLastEvent(uint32_t evnet) {
-  lastEvent_ = event_;
+  lastEvent_ = evnet;
   event_ = evnet;
 }
 
@@ -113,3 +133,5 @@ void Channal::delTimer() {
   t.reset();
   timer_.reset();
 }
+
+std::shared_ptr<Epoller> Channal::getEpoller() { return epoller_.lock(); }

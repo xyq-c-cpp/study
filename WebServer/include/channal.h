@@ -18,6 +18,7 @@ public:
   void setWriteCb(EventCb &&cb);
   void setReadCb(EventCb &&cb);
   void setErrorCb(EventCb &&cb);
+  void setConnectHandleCb(EventCb &&cb);
   void setEvent(uint32_t event);
   void setMsg(std::shared_ptr<Message> msg);
   void setErase(bool isErase);
@@ -28,6 +29,7 @@ public:
   void setTimer(std::shared_ptr<Timer> timer);
   void delTimer();
   int handleClose();
+  std::shared_ptr<Epoller> getEpoller();
 
 private:
   int fd_;
@@ -40,6 +42,7 @@ private:
   EventCb writeCb_;
   EventCb readCb_;
   EventCb errorCb_;
+  EventCb connectHandleCb_;
   std::shared_ptr<Message> msg_;
 };
 

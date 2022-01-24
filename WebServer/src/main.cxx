@@ -12,7 +12,12 @@
 #include <EventLoop.h>
 #include <EventLoopThread.h>
 #include <Server.h>
+#ifndef _MSC_VER
 #include <getopt.h>
+#endif
+#include <Log.h>
+
+#define ENDL '\n'
 
 int main(int argc, char *argv[]) {
   int port = 8888, threadNum = 3;
@@ -31,8 +36,20 @@ int main(int argc, char *argv[]) {
       break;
     }
   }
+
+  assert(log_init("/WebServer/svr.log") == 0);
+
 #ifdef DEBUG
-  std::cout << "mainThread tid " << std::this_thread::get_id() << std::endl;
+  logger() << "mainThread tid " << std::this_thread::get_id();
+  logger() << "EPOLLIN " << EPOLLIN << '\n'
+           << "EPOLLOUT " << EPOLLOUT << ENDL << "EPOLLET " << EPOLLET << ENDL
+           << "EPOLLHUP " << EPOLLHUP << ENDL << "EPOLLERR " << EPOLLERR << ENDL
+           << "EPOLLIN | EPOLLET " << (EPOLLET | EPOLLIN) << ENDL
+           << "EPOLLOUT | EPOLLET " << (EPOLLOUT | EPOLLET) << ENDL
+           << "EPOLLIN | EPOLLET | EPOLLONESHOT "
+           << (EPOLLET | EPOLLIN | EPOLLONESHOT) << ENDL
+           << "EPOLLOUT | EPOLLET | EPOLLONESHOT "
+           << (EPOLLOUT | EPOLLET | EPOLLONESHOT) << ENDL;
 #endif
 
   handleSigpipe();
@@ -40,6 +57,7 @@ int main(int argc, char *argv[]) {
   std::shared_ptr<Server> server(
       std::make_shared<Server>(port, mainLoop, threadNum));
   server->start();
+  
   mainLoop->loop();
 
   return 0;
