@@ -55,3 +55,12 @@ void log(std::string &str) {
   log_queue.push(std::move(str));
   con.notify_one();
 }
+
+int getBitSum(std::uint64_t num) {
+  int bit_sum = 0;
+  while (num > 0) {
+    num /= 10;
+    ++bit_sum;
+  }
+  return bit_sum;
+}

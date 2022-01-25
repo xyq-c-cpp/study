@@ -128,10 +128,11 @@ void Epoller::epollWait(int msec) {
   struct epoll_event *ptr = eventArray_.get();
   ret = epoll_wait(fd_, ptr, maxFdNum_, DEFAULT_WAIT_TIME);
   if (ret <= 0) {
-#ifdef DEBUG
-    logger()
-        << "wake up from epoll_wait, but not events, to handle timerExpired";
-#endif
+    //#ifdef DEBUG
+    //    logger()
+    //        << "wake up from epoll_wait, but not events, to handle
+    //        timerExpired";
+    //#endif
     return;
   }
 

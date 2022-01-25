@@ -174,13 +174,22 @@ int Message::MessageRsp(int fd, bool &isClose) {
   switch (way_) {
   case http_way_t::HTTP_WAY_GET:
     return handleGetRequest(fd, isClose);
+  case http_way_t::HTTP_WAY_POST:
+    return handlePostRequest(fd);
   default:
     handleErrorRsp(fd);
 #ifdef DEBUG
-    logger() << "No support way";
+    logger() << "No support way, fd " << fd;
 #endif
     return -1;
   }
+}
+
+int Message::handlePostRequest(int fd) {
+  logger() << "fd " << fd << " get post request, body:\n" << body_;
+
+  //Ö±½Ó·µ»ØÊ§°Ü
+  handleErrorRsp(fd);
 }
 
 int Message::handleGetRequest(int fd, bool &isClose) {
@@ -191,10 +200,10 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   char *tmp;
   const char *path = INDEX_HTML_FILE_PATH;
   std::string buff;
-  static char *shortRsp =
+  static const char *shortRsp =
       "HTTP/1.1 200 OK\r\nContent-type: text/plain"
       "\r\nContent-Length: 11\r\nConnection: close\r\n\r\nHello World";
-  static char *longRsp =
+  static const char *longRsp =
       "HTTP/1.1 200 OK\r\nContent-type: text/plain"
       "\r\nContent-Length: 11\r\nConnection: keep-alive\r\nKeep-Alive: "
       "timeout=300\r\n\r\nHello World";

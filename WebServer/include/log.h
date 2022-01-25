@@ -10,9 +10,11 @@
 #include <stdint.h>
 #include <string>
 #include <thread>
+#include <cmath>
 
 int log_init(std::string file);
 void log(std::string &str);
+int getBitSum(std::uint64_t num);
 
 class logger {
 public:
@@ -91,7 +93,7 @@ public:
     return *this;
   }
 
-  logger &operator<<(char *o) {
+  logger &operator<<(const char *o) {
     addTime();
 
     buf += std::string(o);
@@ -184,13 +186,15 @@ private:
 
     char tmp[24] = {0};
     auto now = std::chrono::system_clock::now();
-    auto s =
+    std::uint64_t s =
         std::chrono::duration_cast<std::chrono::seconds>(now.time_since_epoch())
             .count();
-    auto ms = std::chrono::duration_cast<std::chrono::microseconds>(
-                  now.time_since_epoch())
-                  .count();
-    auto left_ms = (ms - s * 1000);
+    std::uint64_t ms = std::chrono::duration_cast<std::chrono::microseconds>(
+                           now.time_since_epoch())
+                           .count();
+    int bits_diff = getBitSum(ms) - getBitSum(s);
+    std::uint64_t ttt = s * std::pow(10, bits_diff);
+    std::uint64_t left_ms = ms - ttt;
     while (left_ms > 1000) {
       left_ms /= 10;
     }

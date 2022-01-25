@@ -1,9 +1,44 @@
 #!/bin/bash
 
-ulimit -c unlimited
+if [ ! $# -eq 1 ]; then
+  echo "args: [start | stop | restart]"
+  exit
+fi
 
-echo "/var/coredump/core-%e-%p-%t" > /proc/sys/kernel/core_pattern
+function stopProc(){
+  pid=$(ps -ef|grep /WebServer/server|grep -v grep|awk '{print $2}')
+  if [ ! ${pid} == "" ]; then
+    kill -9 ${pid}
+  fi
+}
 
-mkdir -p /var/coredump
+function startProc(){
+  ulimit -c unlimited
+    
+  echo "/var/coredump/core-%e-%p-%t" > /proc/sys/kernel/core_pattern
 
-/WebServer/server -t 2 -p 80 >/dev/null &
+  mkdir -p /var/coredump
+
+  /WebServer/server -t 2 -p 80 >/dev/null &
+}
+
+case $1 in
+  "stop")
+    stopProc
+  ;;
+    
+  "start")
+    startProc
+  ;;
+  
+  "restart")
+    stopProc
+    startProc
+  ;;
+  
+  "*")
+    echo "invalid args"
+    echo "usage: [start | stop | restart]"
+  ;;
+esac
+

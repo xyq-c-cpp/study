@@ -1,13 +1,17 @@
 #!/bin/bash
 
 rm -f /etc/systemd/system/multi-user.target.wants/server.service
-rm -f /usr/lib/systemd/system/server.service
+# rm -f /usr/lib/systemd/system/server.service
 
 cp -f WebServer/server.service /usr/lib/systemd/system/server.service
 chmod 777 /usr/lib/systemd/system/server.service
 
-ln -sf /usr/lib/systemd/system/server.service /etc/systemd/system/multi-user.target.wants/server.service
-chmod 777 /etc/systemd/system/multi-user.target.wants/server.service
+# ln -sf /usr/lib/systemd/system/server.service /etc/systemd/system/multi-user.target.wants/server.service
+# chmod 777 /etc/systemd/system/multi-user.target.wants/server.service
+
+systemctl enable server
+
+systemctl daemon-reload
 
 rm -rf /WebServer
 cp -rf WebServer /

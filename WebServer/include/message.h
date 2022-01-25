@@ -57,6 +57,7 @@ private:
   int MessageRsp(int fd, bool &isClose);
   void handleErrorRsp(int fd);
   int handleGetRequest(int fd, bool &isClose);
+  int handlePostRequest(int fd);
 
   http_ver_t ver_;
   unsigned int pos_;
