@@ -13,6 +13,8 @@
 //当http响应头和响应体合在一起发送时，浏览器端会一直顺时针转圈；
 //当http响应头和响应体分开发送时，表现就正常；
 //目前，还没有找出原因。
+//2022.01.25
+//原因：send,合在一起发送时，长度不对
 
 #include <Epoller.h>
 #include <Filetype.h>
@@ -266,16 +268,16 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   buff += "Content-length: " + std::to_string(st.st_size) + "\r\n";
   buff += "\r\n";
 
-  auto send_ret = send(fd, buff.c_str(), buff.size(), 0);
-  if (send_ret != buff.size()) {
-    logger() << "send header not all, send_ret " << send_ret << " all "
-             << buff.size();
-  } else {
-    logger() << "rsp header:\n" << buff;
-  }
+  //auto send_ret = send(fd, buff.c_str(), buff.size(), 0);
+  //if (send_ret != buff.size()) {
+  //  logger() << "send header not all, send_ret " << send_ret << " all "
+  //    << buff.size() << " errno " << errno << ", " << strerror(errno);
+  //} else {
+  //  logger() << "rsp header:\n" << buff;
+  //}
 
-  // logger() << "rsp header:\n" << buff;
-  // rsp_ += buff;
+   logger() << "rsp header:\n" << buff;
+   rsp_ += buff;
 
   //  ret = web_svr_write(fd, const_cast<char *>(buff.c_str()), buff.length());
   //  if (ret != (int)buff.length()) {
@@ -303,11 +305,11 @@ int Message::handleGetRequest(int fd, bool &isClose) {
   // logger() << "fd " << fd << " rsp\n " << rsp_;
 
   // ret = web_svr_write(fd, tmp, st.st_size);
-  ret = send(fd, tmp, st.st_size, 0);
-  if (ret != st.st_size) {
+  ret = send(fd, rsp_.c_str(), rsp_.size(), 0);
+  if (ret != rsp_.size()) {
 #ifdef DEBUG
     logger() << "write file " << absolutePath << " not all, errstr "
-             << strerror(errno) << " all " << st.st_size << " ret " << ret;
+             << strerror(errno) << " all " << rsp_.size() << " ret " << ret;
 #endif
     rsp_ = rsp_.substr(ret);
     auto &t = holder_.lock()->getEvent();
