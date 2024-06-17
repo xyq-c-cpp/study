@@ -1,0 +1,24 @@
+[files]
+ignore-files = true
+ignore-hidden = false
+extend-exclude = [
+    ".git/",
+    ".gitattributes",
+    ".gitignore",
+    "Wpf_Mvvm",
+    "ATM",
+    "Some_Demo",
+    "MyGolang",
+    "Development Tool",
+]
+
+
+[default]
+extend-ignore-re=[
+    
+]
+check-filename = true
+
+
+
+
