@@ -1,0 +1,18 @@
+name: CI checks
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  typos-check:
+    name: TyposCheck
+    timeout-minutes: 3
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1.22.7
+        with:
+          config: ./typos.toml
+          isolated: true
